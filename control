@@ -1,0 +1,9 @@
+Package: com.castyte.mk1
+Name: MK1
+Depends: mobilesubstrate, firmware (>= 13.0), com.rpetrich.rocketbootstrap (>= 1.0.7~beta3)
+Version: 9.9.9
+Architecture: iphoneos-arm
+Description: Powerful JavaScript automation and scripting tool.
+Maintainer: Castyte
+Author: Castyte
+Section: Utilities

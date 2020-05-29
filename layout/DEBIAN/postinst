@@ -1,0 +1,24 @@
+
+SCRIPTS='{
+    "STATUSBAR-DOUBLETAP": [
+        "example"
+    ]
+}'
+
+
+if [ ! -f "/Library/MK1/scripts.json" ]; then
+    echo "MK1: Scripts JSON not found, creating."
+    IFS='%'
+    echo $SCRIPTS >> /Library/MK1/scripts.json
+    unset IFS
+fi
+
+chmod 0777 /Library/MK1/ -R || true
+chown mobile:mobile /Library/MK1 -R || true
+chown mobile:mobile /tmp/MK1.log || true
+uicache || true
+
+while IFS="" read -r p || [ -n "$p" ]
+do
+  printf '%s\n' "$p"
+done < /tmp/_egg
