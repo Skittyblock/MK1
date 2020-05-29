@@ -1,27 +1,29 @@
-// MK1 - Copyright (c) 2020 Castyte. All rights reserved.
+// Context.m
 
-#import "Headers/NSTask.h"
+#import "Context.h"
+#import "Tweak.h"
+#import "Util.h"
+#import <AVFoundation/AVFoundation.h>
+#import <rocketbootstrap/rocketbootstrap.h>
 #import <objc/runtime.h>
 #import <notify.h>
-#import <AVFoundation/AVFoundation.h>
-#include <signal.h>
-#include <unistd.h>
+#import <signal.h>
+#import <unistd.h>
 
-// NOTE this and Util.mm are included into Tweak.x instead of compiled as separate units. i cant for the life of me remember why
-
-
-// TODO alerts should use a window placed above everything else instead of getting the key window
-// 		should be some control on global state, as currenly if a script assigns a constant another script will have an error reassigning to it
-//			this could be fixed by having a 'MK1.<SCRIPTNAME<.exports' to export variables for use in other scripts, and all other variable being kept
-//			inside the script
-//
-// 		the contect shouldve ideally used JSExport to sort the different categories into classes, but i did not know JSExport existed when starting this
-
-void setupContext(){
+// Setup JSContext functions
+// Main function implementations
+void setupContext() {
 	NSMutableDictionary <NSString *, NSTimer *> *timeouts = [[NSMutableDictionary alloc] init];
 	NSMutableDictionary <NSString *, NSTimer *> *intervals = [[NSMutableDictionary alloc] init];
 	NSMutableDictionary *bluetoothDevices = [[NSMutableDictionary alloc] init];
 	NSMutableDictionary <NSString *, MTAlarm *> *alarms = [[NSMutableDictionary alloc] init];
+
+	// Alert
+	/* TODO: alerts should use a window placed above everything else instead of getting the key window
+			 should be some control on global state, as currenly if a script assigns a constant another script will have an error reassigning to it
+			 this could be fixed by having a 'MK1.<SCRIPTNAME<.exports' to export variables for use in other scripts, and all other variable being kept inside the script
+	
+	 		 the context should've ideally used JSExport to sort the different categories into classes, but i did not know JSExport existed when starting this */
 
 	ctx[@"alert"] = ^(JSValue *jtitle, JSValue *jmsg){
 		NSString *title = toStringCheckNull(jtitle);
@@ -41,6 +43,7 @@ void setupContext(){
 	};
 
 
+	// RocketBootstrap
 	ctx[@"sendRocketBootstrapMessage"] = ^(NSString *center, NSString *message, NSDictionary *userInfo){
 		static CPDistributedMessagingCenter *c = nil;
 		c = [CPDistributedMessagingCenter centerNamed:center];
@@ -48,11 +51,13 @@ void setupContext(){
 		return [c sendMessageAndReceiveReplyName:message userInfo:userInfo];
 	};
 
+	// Reachability
 	ctx[@"toggleReachability"] = ^{
 		[[objc_getClass("SBReachabilityManager") sharedInstance] setReachabilityEnabled:YES];
 		[[objc_getClass("SBReachabilityManager") sharedInstance] toggleReachability];
 	};
 
+	// Shell
 	ctx[@"shellrun"] = ^(NSString *command, JSValue *cb){
 		NSTask *task = [[NSTask alloc] init];
 		[task setLaunchPath:@"/bin/sh"];
@@ -77,57 +82,54 @@ void setupContext(){
 		[task launch];
 	};
 
+	// Current app info
 	ctx[@"currentApp"] = @{
-
 		@"isSpringBoard": ^{
 			return [userAgent springBoardIsActive];
 		},
-	
 		@"bundleID": ^{
 			return [[springBoard _accessibilityFrontMostApplication] bundleIdentifier];
 		},
-
 		@"name": ^{
 			return [[springBoard _accessibilityFrontMostApplication] displayName];
 		}
-	
 	};
 
-	// TODO not use keyWindow, use a method in springboard or some shit
+	// System UI info
+	// TODO: don't use keyWindow
 	ctx[@"systemUI"] = @{
 		@"isControlCenterShowing": ^{
 			return [[[UIApplication sharedApplication] keyWindow] isKindOfClass:objc_getClass("SBControlCenterWindow")];
 		},
-
 		@"isHomeScreenShowing": ^{
 			return [[[UIApplication sharedApplication] keyWindow] isKindOfClass:objc_getClass("SBHomeScreenWindow")];
 		},
-
 		@"isCoverSheetShowing": ^{
 			return [[[UIApplication sharedApplication] keyWindow] isKindOfClass:objc_getClass("SBCoverSheetWindow")];
 		}
 	};
 
+	// Brightness
 	ctx[@"brightness"] = @{
 		@"getLevel": ^{
 			return [UIScreen mainScreen].brightness;
 		},
-
 		@"setLevel": ^(float level){
 			[[objc_getClass("SBBrightnessController") sharedBrightnessController] setBrightnessLevel:level];
 		}
 	};
 
+	// Cellular
 	ctx[@"cellularData"] = @{
 		@"isEnabled": ^{
 			return [objc_getClass("PSCellularDataSettingsDetail") isEnabled];
 		},
-
 		@"setEnabled": ^(BOOL enabled){
 			[objc_getClass("PSCellularDataSettingsDetail") setEnabled:enabled];
 		}
 	};
 
+	// Volume
 	ctx[@"volume"] = @{
 		@"getRinger": ^{
 			float vol;
@@ -147,9 +149,9 @@ void setupContext(){
 		}
 	};
 	
+	// Wi-Fi
 	ctx[@"wifi"] = @{
-
-		@"isEnabled": ^{ // NOTE this is if its _actually_ enabled, not that white shit in the CC
+		@"isEnabled": ^{
 			return [wifiMan wiFiEnabled];
 		},
 
@@ -161,22 +163,13 @@ void setupContext(){
 			return [wifiMan signalStrengthRSSI];
 		},
 
-		@"setEnabled": ^(BOOL enabled){ // NOTE same here
+		@"setEnabled": ^(BOOL enabled){
 			[wifiMan setWiFiEnabled:enabled];
 		}
-
 	};
 
 
-	ctx[@"allAlarms"] = ^{
-		for(unsigned long long i=0; i<[alarmManager alarmCount]; i++){
-			MTAlarm *alarm = [alarmManager alarmAtIndex:i];
-			alarms[[alarm alarmIDString]] = alarm;
-		}
-
-		return [alarms allKeys];
-	};
-
+	// Alarms
 	ctx[@"alarm"] = @{
 		@"getTitle": ^(NSString *ID){
 			if(alarms[ID]) return alarms[ID].displayTitle;
@@ -234,12 +227,21 @@ void setupContext(){
 				[alarmManager snoozeAlarmWithIdentifier:ID];
 			}
 		}
-
 	};
 
-	ctx[@"bluetooth"] = @{
+	ctx[@"allAlarms"] = ^{
+		for(unsigned long long i=0; i<[alarmManager alarmCount]; i++){
+			MTAlarm *alarm = [alarmManager alarmAtIndex:i];
+			alarms[[alarm alarmIDString]] = alarm;
+		}
 
-		@"isEnabled": ^{ // NOTE this is if its _actually_ enabled, not that white shit in the CC
+		return [alarms allKeys];
+	};
+
+
+	// Bluetooth
+	ctx[@"bluetooth"] = @{
+		@"isEnabled": ^{
 			return [[objc_getClass("BluetoothManager") sharedInstance] enabled];
 		},
 
@@ -250,11 +252,10 @@ void setupContext(){
 		@"connectedDevices": ^{
 			NSMutableArray *ret = [NSMutableArray array];
 			NSArray *devices = [[objc_getClass("BluetoothManager") sharedInstance] connectedDevices];
-			for(BluetoothDevice *device in devices){
+			for (BluetoothDevice *device in devices) {
 				bluetoothDevices[[device scoUID]] = device;
 				[ret addObject:[device scoUID]];
 			}
-
 			return ret;
 		},
 
@@ -268,7 +269,6 @@ void setupContext(){
 
 			return ret;
 		}
-
 	};
 
 	ctx[@"bluetoothDevice"] = @{
@@ -318,10 +318,9 @@ void setupContext(){
 		@"unpair": ^(NSString *dID){
 			if(bluetoothDevices[dID]) [bluetoothDevices[dID] unpair];
 		},
-
-
 	};
 
+	// Confirm alerts
 	ctx[@"confirm"] = ^(JSValue *jtitle, JSValue *jmsg, JSValue *cb){
 		NSString *title = toStringCheckNull(jtitle);
 		NSString *msg = toStringCheckNull(jmsg);
@@ -347,31 +346,26 @@ void setupContext(){
 		[vc presentViewController:alert animated:YES completion:nil];
 	};
 
+	// Context menus
 	ctx[@"menu"] = ^(JSValue *jtitle, JSValue *jmsg, NSArray<NSString *>* options, JSValue *cb){
 		NSString *title = toStringCheckNull(jtitle);
 		NSString *msg = toStringCheckNull(jmsg);
 
 		UIViewController *vc = [[UIApplication sharedApplication] keyWindow].rootViewController;
-		UIAlertController* alert = [UIAlertController alertControllerWithTitle:title
-                               message:msg
-                               preferredStyle:UIAlertControllerStyleAlert];
+		UIAlertController* alert = [UIAlertController alertControllerWithTitle:title message:msg preferredStyle:UIAlertControllerStyleAlert];
  
-		
-
 		[options enumerateObjectsUsingBlock:^(NSString *opt, NSUInteger idx, BOOL *stop){
-			UIAlertAction* action = [UIAlertAction actionWithTitle:opt style:UIAlertActionStyleDefault
-				handler:^(UIAlertAction * action) {
-					[cb callWithArguments:@[[NSNumber numberWithUnsignedInteger:idx]]];
-				}];
+			UIAlertAction* action = [UIAlertAction actionWithTitle:opt style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+				[cb callWithArguments:@[[NSNumber numberWithUnsignedInteger:idx]]];
+			}];
 
 			[alert addAction:action];
-    		
 		}];
 
-		
 		[vc presentViewController:alert animated:YES completion:nil];
 	};
 
+	// Prompt alert
 	ctx[@"prompt"] = ^(JSValue *jtitle, JSValue *jmsg, JSValue *cb){
 		NSString *title = toStringCheckNull(jtitle);
 		NSString *msg = toStringCheckNull(jmsg);
@@ -399,6 +393,7 @@ void setupContext(){
 		[vc presentViewController:alert animated:YES completion:nil];
 	};
 
+	// Media player
 	ctx[@"media"] = @{
 		@"play": ^{
 			MRMediaRemoteSendCommand(MRMediaRemoteCommandPlay, nil);
@@ -420,7 +415,7 @@ void setupContext(){
 			MRMediaRemoteSendCommand(MRMediaRemoteCommandPreviousTrack, nil);
 		},
 
-		// TODO this is horrible
+		// FIXME: this is horrible
 		@"getNowPlayingInfo": ^(JSValue *cb){
 			if(![cb isObject]) return;
 
@@ -430,6 +425,7 @@ void setupContext(){
 		}
 	};
 
+	// Device info
 	ctx[@"device"] = @{
 		@"name": ^{
 			return [UIDevice currentDevice].name;
@@ -502,6 +498,7 @@ void setupContext(){
 
 	};
 
+	// VPN
 	ctx[@"vpn"] = @{
 		@"isConnected": ^{
 			return vpnConnected;
@@ -512,7 +509,7 @@ void setupContext(){
 		}
 	};
 
-
+	// Flashlight
 	ctx[@"flashlight"] = @{
 		@"getLevel": ^{
 			return flashlight.flashlightLevel;
@@ -522,22 +519,24 @@ void setupContext(){
 		}
 	};
 
+	// Open URL
 	ctx[@"openURL"] = ^(NSString *url){
 		[[UIApplication sharedApplication] openURL:[NSURL URLWithString:url] options:@{} completionHandler:nil];
 	};
 
+	// Open application
 	ctx[@"openApp"] = ^(NSString *bundleID){
 		[[UIApplication sharedApplication] launchApplicationWithIdentifier:bundleID suspended:NO];
 	};
 
-
+	// Text to speech
 	ctx[@"textToSpeech"] = ^(NSString *text){
 		AVSpeechUtterance *utterance = [AVSpeechUtterance speechUtteranceWithString:text];
 		AVSpeechSynthesizer *syn = [[AVSpeechSynthesizer alloc] init];
 		[syn speakUtterance:utterance];
 	};
 
-
+	// setTimeout function
 	ctx[@"setTimeout"] = ^(JSValue *cb, double ms){
 		NSString *_id = [[NSUUID UUID] UUIDString];
 		NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:ms/1000 repeats:NO block:^(NSTimer *timer){
@@ -548,7 +547,6 @@ void setupContext(){
 		return _id;
 	};
 
-
 	ctx[@"clearTimeout"] = ^(NSString *_id){
 		if(timeouts[_id]){
 			[timeouts[_id] invalidate];
@@ -556,6 +554,7 @@ void setupContext(){
 		}
 	};
 
+	// setInterval function
 	ctx[@"setInterval"] = ^(JSValue *cb, double ms){
 		NSString *_id = [[NSUUID UUID] UUIDString];
 		NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:ms/1000 repeats:YES block:^(NSTimer *timer){
@@ -572,7 +571,7 @@ void setupContext(){
 		}
 	};
 
-
+	// Low power mode
 	ctx[@"lpm"] = @{
 		@"setEnabled": ^(bool enabled){
 			[[objc_getClass("_CDBatterySaver") sharedInstance] setMode:enabled];
@@ -583,6 +582,7 @@ void setupContext(){
 		}
 	};
 
+	// Airplane mode
 	ctx[@"airplaneMode"] = @{
 		@"isEnabled": ^{
 			return [[[objc_getClass("RadiosPreferences") alloc] init] airplaneMode];
@@ -593,7 +593,7 @@ void setupContext(){
 		}
 	};
 
-
+	// Orientation lock
 	ctx[@"orientationLock"] = @{
 		@"setEnabled": ^(BOOL enabled){
 			if(enabled){
@@ -608,6 +608,7 @@ void setupContext(){
 		}
 	};
 
+	// Dark mode
 	ctx[@"systemStyle"] = @{
 		@"toggle": ^{
 			[[objc_getClass("UIUserInterfaceStyleArbiter") sharedInstance] toggleCurrentStyle];
@@ -618,6 +619,7 @@ void setupContext(){
 		}
 	};
 
+	// Console
 	ctx[@"console"] = @{
 		@"log": ^(NSString *txt){
 			MK1Log(MK1LogInfo, txt);
@@ -633,11 +635,12 @@ void setupContext(){
 		}
 	};
 
+	// File management
 	ctx[@"file"] = @{
 		@"read": ^(NSString *path){
 			NSError *error;
 			NSString *file = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:&error];
-			if(error){
+			if (error) {
 				alertError([error localizedDescription]);
 				return (NSString *)nil;
 			} else {
@@ -681,15 +684,17 @@ void setupContext(){
 		}
 	};
 
-
+	// Screenshot
 	ctx[@"takeScreenshot"] = ^{
 		[[objc_getClass("SBCombinationHardwareButtonActions") alloc] performTakeScreenshotAction];
 	};
 
+	// Darwin notification
 	ctx[@"sendDarwinNotif"] = ^(NSString *notif){
 		return CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), (__bridge CFStringRef)notif, NULL, NULL, false);
 	};
 
+	// Clipboard
 	ctx[@"clipboard"] = @{
 		@"get": ^{
 			return UIPasteboard.generalPasteboard.string;
@@ -700,11 +705,12 @@ void setupContext(){
 		}
 	};
 
+	// MK1 info/actions
 	ctx[@"MK1"] = @{
 		@"version": @MK1VERSION,
 		@"commit": @MK1GITHASH,
 		@"scriptDataDir": @"/Library/MK1/ScriptData/",
-		@"copyright": @"Copyright (c) Castyte 2020. All Rights Reserved.",
+		@"copyright": @"Copyright (c) Castyte 2020. All Rights Reserved.\nModified work copyright (c) Skitty 2020.",
 
 		@"setAlertOnError": ^(BOOL set){
 			setupLogger(set);
@@ -738,5 +744,4 @@ void setupContext(){
 			@NO,
 			#endif
 	};
-
 }

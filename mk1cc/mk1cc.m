@@ -2,7 +2,7 @@
 
 
 #import "mk1cc.h"
-#import "../src/Headers/CPDistributedMessagingCenter.h"
+#import <AppSupport/CPDistributedMessagingCenter.h>
 #import <rocketbootstrap/rocketbootstrap.h>
 
 @implementation mk1cc

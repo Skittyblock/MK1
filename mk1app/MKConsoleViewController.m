@@ -38,11 +38,11 @@ void notifcb(CFNotificationCenterRef center, void *observer, CFStringRef name, c
     NSString *logtxt = [NSString stringWithContentsOfFile:@"/tmp/MK1.log" encoding:NSUTF8StringEncoding error:&error];
     if(error) self.textView.text = [error localizedDescription];
     else if(logtxt.length > 1){
-        self.textView.attributedText = [[NSAttributedString alloc] initWithString:logtxt attributes:@{NSForegroundColorAttributeName:UIColor.labelColor}];
-        [self setColorForText:@"[DEBUG]" color:UIColor.systemPinkColor];
-        [self setColorForText:@"[ERROR]" color:UIColor.systemRedColor];
-        [self setColorForText:@"[INFO]" color:UIColor.systemBlueColor];
-        [self setColorForText:@"[WARN]" color:UIColor.systemOrangeColor];
+        self.textView.attributedText = [[NSAttributedString alloc] initWithString:logtxt attributes:@{NSForegroundColorAttributeName:UIColor.blackColor}];
+        [self setColorForText:@"[DEBUG]" color:UIColor.magentaColor];
+        [self setColorForText:@"[ERROR]" color:UIColor.redColor];
+        [self setColorForText:@"[INFO]" color:UIColor.blueColor];
+        [self setColorForText:@"[WARN]" color:UIColor.orangeColor];
     }
 }
 

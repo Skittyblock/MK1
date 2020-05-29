@@ -3,9 +3,9 @@
 #import "MKScriptsViewController.h"
 #import "MKScript.h"
 #import "MKAppDelegate.h"
-#import "../src/Headers/CPDistributedMessagingCenter.h"
+#import <AppSupport/CPDistributedMessagingCenter.h>
 #import <rocketbootstrap/rocketbootstrap.h>
-#import "../src/Headers/UIProgressHUD.h"
+#import <UIKit/UIKit+Private.h>
 
 @implementation MKScriptsViewController
 

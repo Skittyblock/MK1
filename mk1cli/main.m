@@ -2,7 +2,7 @@
 
 #include <stdio.h>
 #include <string.h>
-#import "../src/Headers/CPDistributedMessagingCenter.h"
+#import <AppSupport/CPDistributedMessagingCenter.h>
 #import <rocketbootstrap/rocketbootstrap.h>
 
 int main(int argc, char *argv[], char *envp[]) {

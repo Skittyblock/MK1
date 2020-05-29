@@ -1,131 +1,138 @@
 // MK1 - Copyright (c) 2020 Castyte. All rights reserved.
+// Modified work copyright (c) 2020 Skitty.
 
 #import "Tweak.h"
-#include "Util.mm"
+#import "Util.h"
 #import <dlfcn.h>
-#import "Headers/CPDistributedMessagingCenter.h"
-#import <rocketbootstrap/rocketbootstrap.h>
-#import <MediaRemote/MediaRemote.h>
-#include "Context.mm"
 
+// Variables
+// TODO: Store these in a better way
+JSContext *ctx;
+NSDictionary *scripts;
+BOOL springBoardReady;
+SBUserAgent *userAgent;
+SpringBoard *springBoard;
+SBWiFiManager *wifiMan;
+BOOL vpnConnected;
+VPNBundleController *vpnController;
+AVFlashlight *flashlight;
+int bluetoothConnectedHack;
+MTAlarmManager *alarmManager;
 
+// Hooks
+// Detect button presses, enable battery monitoring
 %hook SpringBoard
 
--(id)init{
+- (id)init {
 	springBoard = %orig;
 	return springBoard;
 }
 
--(BOOL)_handlePhysicalButtonEvent:(UIPressesEvent *)arg1{
-	
-	BOOL up = NO;
-	BOOL down = NO;
+- (BOOL)_handlePhysicalButtonEvent:(UIPressesEvent *)arg1 {
+	BOOL volUp = NO;
+	BOOL volDown = NO;
 	BOOL lock = NO;
 	BOOL home = NO;
 	BOOL touchID = NO;
 	
-	for(UIPress* press in arg1.allPresses.allObjects){
-		if(press.force != 1) continue;
-		if (press.type == 102){ // UP
-			up = YES;
-		} else if(press.type == 103){ // DOWN
-			down = YES;
-		} else if(press.type == 104){ // LOCK
+	for (UIPress *press in arg1.allPresses.allObjects) {
+		if (press.force != 1) continue;
+		if (press.type == 102) { // Volume up
+			volUp = YES;
+		} else if(press.type == 103) { // Volume down
+			volDown = YES;
+		} else if(press.type == 104) { // Lock
 			lock = YES;
-		} else if(press.type == 101){ // HOME
+		} else if(press.type == 101) { // Home
 			home = YES;
-		} else if(press.type == 100){ // TOUCHID
+		} else if(press.type == 100) { // Touch ID
 			touchID = YES;
 		}
 	}
-	
 
-	if(home){
-		if(up){
+	if (home) {
+		if (volUp) {
 			runAllForTrigger(@"HWBUTTON-HOME+VOLUP");
-		} else if(down){
+		} else if (volDown) {
 			runAllForTrigger(@"HWBUTTON-HOME+VOLDOWN");
-		} else if(lock){
+		} else if (lock) {
 			runAllForTrigger(@"HWBUTTON-HOME+POWER");
 		} else {
 			runAllForTrigger(@"HWBUTTON-HOME");
 		}
-	} else if(up){
-		if(down){
+	} else if (volUp) {
+		if (volDown) {
 			runAllForTrigger(@"HWBUTTON-VOLUP+VOLDOWN");
 		} else {
 			runAllForTrigger(@"HWBUTTON-VOLUP");
 		}
-	} else if(down){
+	} else if (volDown) {
 		runAllForTrigger(@"HWBUTTON-VOLDOWN");
-	} else if(lock){
+	} else if (lock) {
 		runAllForTrigger(@"HWBUTTON-POWER");
-	} else if(touchID){
+	} else if (touchID) {
 		runAllForTrigger(@"HWBUTTON-TOUCHID");
 	}
 	
 	return %orig;
 }
 
-
--(void)applicationDidFinishLaunching:(id)application{
+- (void)applicationDidFinishLaunching:(id)application {
 	%orig;
 
 	springBoardReady = YES;
-	if(triggerHasScripts(@"BATTERY-LEVELCHANGE") || triggerHasScripts(@"BATTERY-LEVEL20") || triggerHasScripts(@"BATTERY-LEVEL50")){
+	if (triggerHasScripts(@"BATTERY-LEVELCHANGE") || triggerHasScripts(@"BATTERY-LEVEL20") || triggerHasScripts(@"BATTERY-LEVEL50")) {
 		[[UIDevice currentDevice] setBatteryMonitoringEnabled:YES];
 		[[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(batteryLevelChanged) name:UIDeviceBatteryLevelDidChangeNotification object:nil];
 	}
 }
 
 %new
-
--(void)batteryLevelChanged{
-	if(triggerHasScripts(@"BATTERY-LEVELCHANGE")) runAllForTrigger(@"BATTERY-LEVELCHANGE");
-	if(triggerHasScripts(@"BATTERY-LEVEL20") || triggerHasScripts(@"BATTERY-LEVEL50")){ // FIXME idk what to do about these LEVELXX triggers, they are retarded
-		if((int)[UIDevice currentDevice].batteryLevel == 20) runAllForTrigger(@"BATTERY-LEVEL20");
-		else if((int)[UIDevice currentDevice].batteryLevel == 50) runAllForTrigger(@"BATTERY-LEVEL50");
+- (void)batteryLevelChanged {
+	if (triggerHasScripts(@"BATTERY-LEVELCHANGE")) runAllForTrigger(@"BATTERY-LEVELCHANGE");
+	if (triggerHasScripts(@"BATTERY-LEVEL20") || triggerHasScripts(@"BATTERY-LEVEL50")) { // TODO: somehow allow LEVELXX triggers
+		if ((int)[UIDevice currentDevice].batteryLevel == 20) runAllForTrigger(@"BATTERY-LEVEL20");
+		else if ((int)[UIDevice currentDevice].batteryLevel == 50) runAllForTrigger(@"BATTERY-LEVEL50");
 	}
 }
 
 %end
 
+// Detect shaking
+%hook UIViewController
 
-
-%hook UIViewController // TODO what in the shit
-
--(void)motionEnded:(UIEventSubtype)motion withEvent:(UIEvent *)event{
+- (void)motionEnded:(UIEventSubtype)motion withEvent:(UIEvent *)event {
 	%orig;
-    if(motion == UIEventSubtypeMotionShake){
+    if (motion == UIEventSubtypeMotionShake) {
     	runAllForTrigger(@"DEVICE-SHAKE");
     }
 }
 
-
 %end
 
-
+// Store SBUserAgent
 %hook SBUserAgent
 
--(id)init{
+- (id)init {
 	userAgent = %orig;
 	return userAgent;
 }
 
 %end
 
+// Wi-Fi activation state and network change triggers
 %hook SBWiFiManager
 
--(id)init{
+- (id)init {
 	wifiMan = %orig;
 	return wifiMan;
 }
 
--(void)_powerStateDidChange{
+- (void)_powerStateDidChange {
 	%orig;
-	if(!springBoardReady) return;
+	if (!springBoardReady) return;
 	dispatch_async(dispatch_get_main_queue(), ^{
-		if([self wiFiEnabled]){
+		if ([self wiFiEnabled]) {
 			runAllForTrigger(@"WIFI-ENABLED");
 		} else {
 			runAllForTrigger(@"WIFI-DISABLED");
@@ -133,10 +140,9 @@
 	});
 }
 
-
--(void)_linkDidChange{
+- (void)_linkDidChange {
 	%orig;
-	if(!springBoardReady) return;
+	if (!springBoardReady) return;
 	dispatch_async(dispatch_get_main_queue(), ^{
 		runAllForTrigger(@"WIFI-NETWORKCHANGE");
 	});
@@ -144,11 +150,10 @@
 
 %end
 
-
-
+// Dark mode toggle trigger
 %hook UIUserInterfaceStyleArbiter
 
--(void)userInterfaceStyleModeDidChange:(id)arg1{
+- (void)userInterfaceStyleModeDidChange:(id)arg1 {
 	%orig;
 	dispatch_async(dispatch_get_main_queue(), ^{
 		runAllForTrigger(@"DEVICE-DARKMODETOGGLE");
@@ -157,13 +162,14 @@
 
 %end
 
+// Bluetooth connected tigger
 %hook BluetoothManager
 
--(void)_connectedStatusChanged{
+- (void)_connectedStatusChanged {
 	%orig;
 	dispatch_async(dispatch_get_main_queue(), ^{
 		int count = [[[%c(BluetoothManager) sharedInstance] connectedDevices] count];
-		if(bluetoothConnectedHack == count) return;
+		if (bluetoothConnectedHack == count) return;
 		bluetoothConnectedHack = count;
 		runAllForTrigger(@"BLUETOOTH-CONNECTEDCHANGE");
 	});
@@ -171,106 +177,102 @@
 
 %end
 
+// Status bar gestures
+%hook _UIStatusBar
 
-%hook _UIStatusBar // this is disguting but it works ig
-
--(void)didMoveToWindow{
+- (void)didMoveToWindow {
 	UITapGestureRecognizer *doubleTap;
 
-	if(triggerHasScripts(@"STATUSBAR-LONGPRESS")){
+	if (triggerHasScripts(@"STATUSBAR-LONGPRESS")) {
 		[self addGestureRecognizer:[[UILongPressGestureRecognizer alloc] initWithTarget:self action:@selector(mk1longPressed)]];
 	}
 
-	if(triggerHasScripts(@"STATUSBAR-DOUBLETAP")){
+	if (triggerHasScripts(@"STATUSBAR-DOUBLETAP")) {
 		doubleTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(mk1doubleTapped)];
 		doubleTap.numberOfTapsRequired = 2;
 		[self addGestureRecognizer:doubleTap];
 	}
 
-	if(triggerHasScripts(@"STATUSBAR-SINGLETAP")){
+	if (triggerHasScripts(@"STATUSBAR-SINGLETAP")) {
 		UITapGestureRecognizer *singleTap = [[UITapGestureRecognizer alloc] initWithTarget:self action:@selector(mk1singleTapped)];
 		singleTap.numberOfTapsRequired = 1;
 		if(triggerHasScripts(@"STATUSBAR-DOUBLETAP")) [singleTap requireGestureRecognizerToFail:doubleTap];
 		[self addGestureRecognizer:singleTap];
 	}
 
-	if(triggerHasScripts(@"STATUSBAR-SWIPELEFT")){
+	if (triggerHasScripts(@"STATUSBAR-SWIPELEFT")) {
 		UISwipeGestureRecognizer *swipeLeft = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(mk1swipedLeft)];
 		swipeLeft.direction = UISwipeGestureRecognizerDirectionLeft;
 		[self addGestureRecognizer:swipeLeft];
 	}
 
-	if(triggerHasScripts(@"STATUSBAR-SWIPERIGHT")){
+	if (triggerHasScripts(@"STATUSBAR-SWIPERIGHT")) {
 		UISwipeGestureRecognizer *swipeRight = [[UISwipeGestureRecognizer alloc] initWithTarget:self action:@selector(mk1swipedRight)];
 		swipeRight.direction = UISwipeGestureRecognizerDirectionRight;
 		[self addGestureRecognizer:swipeRight];
 	}
 }
 
-
 %new
-
--(void)mk1swipedLeft{
+- (void)mk1swipedLeft {
 	runAllForTrigger(@"STATUSBAR-SWIPELEFT");
 }
 
 %new
-
--(void)mk1swipedRight{
+- (void)mk1swipedRight {
 	runAllForTrigger(@"STATUSBAR-SWIPERIGHT");
 }
 
-
 %new
-
--(void)mk1singleTapped{
+- (void)mk1singleTapped {
 	runAllForTrigger(@"STATUSBAR-SINGLETAP");
 }
 
 %new
-
--(void)mk1doubleTapped{
+- (void)mk1doubleTapped {
 	runAllForTrigger(@"STATUSBAR-DOUBLETAP");
 }
 
 %new
-
--(void)mk1longPressed{
+- (void)mk1longPressed {
 	runAllForTrigger(@"STATUSBAR-LONGPRESS");
 }
 
 %end
 
+// Store alarm manager
 %hook MTAlarmManager
 
--(id)init{
+- (id)init{
 	alarmManager = %orig;
 	return alarmManager;
 }
 
 %end
 
+// Battery charging trigger
 %hook _UIBatteryView
 
--(void)setChargingState:(long long)arg1 {
+- (void)setChargingState:(long long)arg1 {
 	%orig;
-	if(springBoardReady) runAllForTrigger(@"BATTERY-STATECHANGE");
+	if (springBoardReady) runAllForTrigger(@"BATTERY-STATECHANGE");
 }
 
 %end
 
-%hook SBStatusBarStateAggregator // hacky but it works
+// VPN state triggers
+%hook SBStatusBarStateAggregator
 
--(void)_updateVPNItem{
+- (void)_updateVPNItem {
     %orig;
     SBTelephonyManager *telephonyManager = (SBTelephonyManager *)[%c(SBTelephonyManager) sharedTelephonyManager];
 
-    if ([telephonyManager isUsingVPNConnection]){
+    if ([telephonyManager isUsingVPNConnection]) {
 		vpnConnected = YES;
 		runAllForTrigger(@"VPN-CONNECTED");
 	}
 
-	if (![telephonyManager isUsingVPNConnection] && vpnConnected){
+	if (![telephonyManager isUsingVPNConnection] && vpnConnected) {
 		vpnConnected = NO;
 		runAllForTrigger(@"VPN-DISCONNECTED");
 	}
@@ -278,12 +280,13 @@
 
 %end
 
+// Notification trigger and variable storage
 %hook NCNotificationDispatcher
 
--(void)postNotificationWithRequest:(NCNotificationRequest *)req{
+- (void)postNotificationWithRequest:(NCNotificationRequest *)req {
 	%orig;
-	if(triggerHasScripts(@"NOTIFICATION-RECEIVE")){
-		if([[NSDate date] timeIntervalSinceDate:[req timestamp]] > 5) return;
+	if (triggerHasScripts(@"NOTIFICATION-RECEIVE")) {
+		if ([[NSDate date] timeIntervalSinceDate:[req timestamp]] > 5) return;
 		NCNotificationContent *content = [req content];
 		initContextIfNeeded();
 		ctx[@"NOTIFICATION_HEADER"] = content.header;
@@ -297,44 +300,46 @@
 
 %end
 
-
+// Store AVFlashlight
 %hook AVFlashlight
 
--(id)init{
+- (id)init {
 	flashlight = %orig;
 	return flashlight;
 }
 
 %end
 
+// Application launch trigger
 %hook SBApplication
 
--(void)_processDidLaunch:(id)arg{
+- (void)_processDidLaunch:(id)arg {
 	%orig;
 	runAllForTrigger(@"APPLICATION-LAUNCH");
 }
 
 %end
 
-
+// Unlock/lock trigger
 %hook SBLockScreenManager
 
--(void)_finishUIUnlockFromSource:(int)source withOptions:(id)options{
+- (void)_finishUIUnlockFromSource:(int)source withOptions:(id)options {
 	%orig;
 	runAllForTrigger(@"DEVICE-UNLOCK");
 }
 
--(BOOL)_lockUI{
-	if(springBoardReady) runAllForTrigger(@"DEVICE-LOCK");
+- (BOOL)_lockUI {
+	if (springBoardReady) runAllForTrigger(@"DEVICE-LOCK");
 	return %orig;
 }
 
 %end
 
-void updateScripts(){
+// Update scripts
+void updateScripts() {
 	NSError *dError;
     NSData *data = [NSData dataWithContentsOfFile:@"/Library/MK1/scripts.json" options:kNilOptions error:&dError];
-    if(dError){
+    if (dError) {
     	MK1Log(MK1LogError, [dError localizedDescription]);
     	scripts = @{};
     	return;
@@ -342,93 +347,39 @@ void updateScripts(){
 
     NSError *jError;
 	scripts = [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&jError];
-	if(jError){
+	if (jError) {
 		MK1Log(MK1LogError, [jError localizedDescription]);
 		scripts = @{};
 	}
-
 }
 
-
-// TODO should probably put this shit somewhere else
-@interface MYMessagingCenter : NSObject {
-	CPDistributedMessagingCenter * _messagingCenter;
-}
-@end
-
-@implementation MYMessagingCenter
-
-+ (void)load {
-	[self sharedInstance];
-}
-
-+ (instancetype)sharedInstance {
-	static dispatch_once_t once = 0;
-	__strong static id sharedInstance = nil;
-	dispatch_once(&once, ^{
-		sharedInstance = [self new];
-	});
-	return sharedInstance;
-}
-
-- (instancetype)init {
-	if ((self = [super init])) {
-		_messagingCenter = [CPDistributedMessagingCenter centerNamed:@"com.castyte.mk1"];
-		rocketbootstrap_distributedmessagingcenter_apply(_messagingCenter);
-
-		[_messagingCenter runServerOnCurrentThread];
-		[_messagingCenter registerForMessageName:@"runscript" target:self selector:@selector(handleMessageNamed:withUserInfo:)];
-		[_messagingCenter registerForMessageName:@"runtrigger" target:self selector:@selector(handleMessageNamed:withUserInfo:)];
-		[_messagingCenter registerForMessageName:@"updateScripts" target:self selector:@selector(handleMessageNamed:withUserInfo:)];
-	}
-
-	return self;
-}
-
-- (NSDictionary *)handleMessageNamed:(NSString *)name withUserInfo:(NSDictionary *)userInfo {
-	if([name isEqualToString:@"runscript"] && userInfo[@"name"]){
-		initContextIfNeeded();
-		if(userInfo[@"arg"]) ctx[@"MK1_ARG"] = userInfo[@"arg"];
-		runScriptWithName(userInfo[@"name"]);
-	} else if([name isEqualToString:@"runtrigger"] && userInfo[@"name"]){
-		initContextIfNeeded();
-		if(userInfo[@"arg"]) ctx[@"MK1_ARG"] = userInfo[@"arg"];
-		runAllForTrigger(userInfo[@"name"]);
-	} else if([name isEqualToString:@"updateScripts"]){
-		updateScripts();
-	}
-	return @{};
-}
-
-@end
-
-
-%ctor{
+// Constructor
+%ctor {
 	@autoreleasepool {
 		updateScripts();
 
 		dlopen("/System/Library/PreferenceBundles/VPNPreferences.bundle/VPNPreferences", RTLD_LAZY);
 		vpnController = [[%c(VPNBundleController) alloc] initWithParentListController:nil];
 
-
+		// Ringer toggle trigger
 		[[NSNotificationCenter defaultCenter] addObserverForName:@"SBRingerChangedNotification" object:nil queue:nil usingBlock:^(NSNotification *notif){
-			if(springBoardReady) runAllForTrigger(@"HWBUTTON-RINGERTOGGLE");
+			if (springBoardReady) runAllForTrigger(@"HWBUTTON-RINGERTOGGLE");
 		}];
 
+		// Now playing change trigger
 		[[NSNotificationCenter defaultCenter] addObserverForName:@"SBMediaNowPlayingChangedNotification" object:nil queue:nil usingBlock:^(NSNotification *notif){
-			if(springBoardReady) runAllForTrigger(@"MEDIA-NOWPLAYINGCHANGE");
+			if (springBoardReady) runAllForTrigger(@"MEDIA-NOWPLAYINGCHANGE");
 		}];
 
+		// Volume change notification
 		[[NSNotificationCenter defaultCenter] addObserverForName:@"AVSystemController_SystemVolumeDidChangeNotification" object:nil queue:nil usingBlock:^(NSNotification *notif){
-			if(!springBoardReady) return;
+			if (!springBoardReady) return;
 
-			if([notif.userInfo[@"AVSystemController_AudioCategoryNotificationParameter"] isEqualToString:@"Audio/Video"]){
+			if ([notif.userInfo[@"AVSystemController_AudioCategoryNotificationParameter"] isEqualToString:@"Audio/Video"]) {
 				runAllForTrigger(@"VOLUME-MEDIACHANGE");
-			} else if([notif.userInfo[@"AVSystemController_AudioCategoryNotificationParameter"] isEqualToString:@"Ringtone"]){
+			} else if([notif.userInfo[@"AVSystemController_AudioCategoryNotificationParameter"] isEqualToString:@"Ringtone"]) {
 				runAllForTrigger(@"VOLUME-RINGERCHANGE");
 			}
-
 		}];
 	}
 }
-

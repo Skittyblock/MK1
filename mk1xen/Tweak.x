@@ -1,7 +1,7 @@
 // MK1 XenHTML Integration - Copyright (c) 2020 Castyte. All rights reserved.
 
 #import <WebKit/WebKit.h>
-#import "../src/Headers/CPDistributedMessagingCenter.h"
+#import <AppSupport/CPDistributedMessagingCenter.h>
 #import <rocketbootstrap/rocketbootstrap.h>
 
 @interface XENHWidgetController <WKScriptMessageHandler>

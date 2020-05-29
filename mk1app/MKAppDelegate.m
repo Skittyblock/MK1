@@ -3,9 +3,9 @@
 #import "MKAppDelegate.h"
 #import "MKRootViewController.h"
 #import "MKConsoleViewController.h"
-#import "../src/Headers/CPDistributedMessagingCenter.h"
+#import <AppSupport/CPDistributedMessagingCenter.h>
 #import <rocketbootstrap/rocketbootstrap.h>
-#import "../src/Headers/UIProgressHUD.h"
+#import <UIKit/UIKit+Private.h>
 
 // this is disgusting. turn back if you value your life.
 
