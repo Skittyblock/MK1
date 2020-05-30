@@ -1,0 +1,9 @@
+Package: com.castyte.mk1cli
+Name: MK1 CLI Tool
+Version: 1.0
+Architecture: iphoneos-arm
+Description: A commandline tool for MK1.
+Maintainer: Castyte
+Author: Castyte
+Section: System
+Tag: role::hacker

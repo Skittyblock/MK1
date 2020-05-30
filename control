@@ -1,9 +1,12 @@
-Package: com.castyte.mk1
-Name: MK1
+Package: xyz.skitty.mk1
+Name: MK1 Beta
 Depends: mobilesubstrate, firmware (>= 13.0), com.rpetrich.rocketbootstrap (>= 1.0.7~beta3)
-Version: 9.9.9
+Conflicts: com.castyte.mk1
+Provides: com.castyte.mk1
+Replaces: com.castyte.mk1
+Version: 0.1
 Architecture: iphoneos-arm
 Description: Powerful JavaScript automation and scripting tool.
-Maintainer: Castyte
-Author: Castyte
+Maintainer: Skitty
+Author: Castyte & Skitty
 Section: Utilities

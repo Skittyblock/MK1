@@ -1,9 +1,0 @@
-Package: com.castyte.mk1cc
-Name: MK1 Control Center
-Depends: com.castyte.mk1, com.opa334.ccsupport
-Version: 0.0.1
-Architecture: iphoneos-arm
-Description: Trigger MK1 Scripts from the Control Center
-Maintainer: Castyte
-Author: Castyte
-Section: Addons (MK1)

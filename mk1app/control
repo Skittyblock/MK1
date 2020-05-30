@@ -1,8 +1,0 @@
-Package: com.castyte.mk1app
-Name: MK1 App
-Version: 0.0.1
-Architecture: iphoneos-arm
-Description: An awesome application!
-Maintainer: Castyte
-Author: Castyte
-Section: Utilities

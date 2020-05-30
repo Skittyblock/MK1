@@ -1,0 +1,9 @@
+Package: xyz.skitty.mk1app
+Name: MK1 App
+Depends: xyz.skitty.mk1
+Version: 0.0.1
+Architecture: iphoneos-arm
+Description: MK1 Companion app.
+Maintainer: Skitty
+Author: Castyte & Skitty
+Section: Applications
