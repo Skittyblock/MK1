@@ -1,16 +1,6 @@
 # MK1 DOCUMENTATION
-  
-Note from castyte:
-This is the last release of MK1. As you may have seen, I am leaving the jailbreak community indefinitely. Thank you all for the support and I wish you all the best.  
-  
-Also congratulations to the script competition winners which i forgot about (sorry):   
-1. @Jimmehh   
-2. @Slowie   
-3. @Khafra   
-Contact them on discord if interested in their scripts.  
-  
-If you want to join the discord server contact Fahrenheight#0001, existing invites will probably get deleted.  
-    
+Better documentation will be coming soon, but here is the original for now.
+
 # General Information
 Scripts are stored as `/Library/MK1/Scripts/SCRIPT_NAME.js`  
 The trigger that the scripts run on is defined in a JSON file at `/Library/MK1/scripts.json`  
@@ -303,10 +293,11 @@ EG: JavaScript `Number` becomes `NSNumber *` and JavaScript `String` becomes `NS
 The function must return an `id` type.  
    
 # Credits
-Copyright (c) Castyte 2020   
-MK1 is created, developed and maintained by Castyte (Twitter: @castyte)    
+Copyright (c) Castyte 2020  
+Modified work copyright (c) Skitty 2020  
+MK1 was originally created and developed by Castyte (Twitter: @castyte)  
+Development has been continued by Skitty (Twitter: @Skittyblock)  
 Some action contributions by Tr1Fecta (Twitter: @FectaTr1)  
-App, Tweak and Control Center icon by ConorTheDev (Twitter: @ConorTheDev)  
 RocketBootstrap by Ryan Petrich (Twitter: @rpetrich)  
 CCSupport by opa334 (Twitter: @opa334dev)  *Used in the Control Center addon*  
 XenHTML by machstick (Twitter: @machstick)  *Used in the XenHTML addon*  

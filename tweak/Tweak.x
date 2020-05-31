@@ -52,26 +52,26 @@ MTAlarmManager *alarmManager;
 
 	if (home) {
 		if (volUp) {
-			runAllForTrigger(@"HWBUTTON-HOME+VOLUP");
+			activateTrigger(@"HWBUTTON-HOME+VOLUP");
 		} else if (volDown) {
-			runAllForTrigger(@"HWBUTTON-HOME+VOLDOWN");
+			activateTrigger(@"HWBUTTON-HOME+VOLDOWN");
 		} else if (lock) {
-			runAllForTrigger(@"HWBUTTON-HOME+POWER");
+			activateTrigger(@"HWBUTTON-HOME+POWER");
 		} else {
-			runAllForTrigger(@"HWBUTTON-HOME");
+			activateTrigger(@"HWBUTTON-HOME");
 		}
 	} else if (volUp) {
 		if (volDown) {
-			runAllForTrigger(@"HWBUTTON-VOLUP+VOLDOWN");
+			activateTrigger(@"HWBUTTON-VOLUP+VOLDOWN");
 		} else {
-			runAllForTrigger(@"HWBUTTON-VOLUP");
+			activateTrigger(@"HWBUTTON-VOLUP");
 		}
 	} else if (volDown) {
-		runAllForTrigger(@"HWBUTTON-VOLDOWN");
+		activateTrigger(@"HWBUTTON-VOLDOWN");
 	} else if (lock) {
-		runAllForTrigger(@"HWBUTTON-POWER");
+		activateTrigger(@"HWBUTTON-POWER");
 	} else if (touchID) {
-		runAllForTrigger(@"HWBUTTON-TOUCHID");
+		activateTrigger(@"HWBUTTON-TOUCHID");
 	}
 	
 	return %orig;
@@ -89,10 +89,10 @@ MTAlarmManager *alarmManager;
 
 %new
 - (void)batteryLevelChanged {
-	if (triggerHasScripts(@"BATTERY-LEVELCHANGE")) runAllForTrigger(@"BATTERY-LEVELCHANGE");
+	if (triggerHasScripts(@"BATTERY-LEVELCHANGE")) activateTrigger(@"BATTERY-LEVELCHANGE");
 	if (triggerHasScripts(@"BATTERY-LEVEL20") || triggerHasScripts(@"BATTERY-LEVEL50")) { // TODO: somehow allow LEVELXX triggers
-		if ((int)[UIDevice currentDevice].batteryLevel == 20) runAllForTrigger(@"BATTERY-LEVEL20");
-		else if ((int)[UIDevice currentDevice].batteryLevel == 50) runAllForTrigger(@"BATTERY-LEVEL50");
+		if ((int)[UIDevice currentDevice].batteryLevel == 20) activateTrigger(@"BATTERY-LEVEL20");
+		else if ((int)[UIDevice currentDevice].batteryLevel == 50) activateTrigger(@"BATTERY-LEVEL50");
 	}
 }
 
@@ -104,7 +104,7 @@ MTAlarmManager *alarmManager;
 - (void)motionEnded:(UIEventSubtype)motion withEvent:(UIEvent *)event {
 	%orig;
     if (motion == UIEventSubtypeMotionShake) {
-    	runAllForTrigger(@"DEVICE-SHAKE");
+    	activateTrigger(@"DEVICE-SHAKE");
     }
 }
 
@@ -133,9 +133,9 @@ MTAlarmManager *alarmManager;
 	if (!springBoardReady) return;
 	dispatch_async(dispatch_get_main_queue(), ^{
 		if ([self wiFiEnabled]) {
-			runAllForTrigger(@"WIFI-ENABLED");
+			activateTrigger(@"WIFI-ENABLED");
 		} else {
-			runAllForTrigger(@"WIFI-DISABLED");
+			activateTrigger(@"WIFI-DISABLED");
 		}
 	});
 }
@@ -144,7 +144,7 @@ MTAlarmManager *alarmManager;
 	%orig;
 	if (!springBoardReady) return;
 	dispatch_async(dispatch_get_main_queue(), ^{
-		runAllForTrigger(@"WIFI-NETWORKCHANGE");
+		activateTrigger(@"WIFI-NETWORKCHANGE");
 	});
 }
 
@@ -156,7 +156,7 @@ MTAlarmManager *alarmManager;
 - (void)userInterfaceStyleModeDidChange:(id)arg1 {
 	%orig;
 	dispatch_async(dispatch_get_main_queue(), ^{
-		runAllForTrigger(@"DEVICE-DARKMODETOGGLE");
+		activateTrigger(@"DEVICE-DARKMODETOGGLE");
 	});
 }
 
@@ -171,7 +171,7 @@ MTAlarmManager *alarmManager;
 		int count = [[[%c(BluetoothManager) sharedInstance] connectedDevices] count];
 		if (bluetoothConnectedHack == count) return;
 		bluetoothConnectedHack = count;
-		runAllForTrigger(@"BLUETOOTH-CONNECTEDCHANGE");
+		activateTrigger(@"BLUETOOTH-CONNECTEDCHANGE");
 	});
 }
 
@@ -215,27 +215,27 @@ MTAlarmManager *alarmManager;
 
 %new
 - (void)mk1swipedLeft {
-	runAllForTrigger(@"STATUSBAR-SWIPELEFT");
+	activateTrigger(@"STATUSBAR-SWIPELEFT");
 }
 
 %new
 - (void)mk1swipedRight {
-	runAllForTrigger(@"STATUSBAR-SWIPERIGHT");
+	activateTrigger(@"STATUSBAR-SWIPERIGHT");
 }
 
 %new
 - (void)mk1singleTapped {
-	runAllForTrigger(@"STATUSBAR-SINGLETAP");
+	activateTrigger(@"STATUSBAR-SINGLETAP");
 }
 
 %new
 - (void)mk1doubleTapped {
-	runAllForTrigger(@"STATUSBAR-DOUBLETAP");
+	activateTrigger(@"STATUSBAR-DOUBLETAP");
 }
 
 %new
 - (void)mk1longPressed {
-	runAllForTrigger(@"STATUSBAR-LONGPRESS");
+	activateTrigger(@"STATUSBAR-LONGPRESS");
 }
 
 %end
@@ -255,7 +255,7 @@ MTAlarmManager *alarmManager;
 
 - (void)setChargingState:(long long)arg1 {
 	%orig;
-	if (springBoardReady) runAllForTrigger(@"BATTERY-STATECHANGE");
+	if (springBoardReady) activateTrigger(@"BATTERY-STATECHANGE");
 }
 
 %end
@@ -269,12 +269,12 @@ MTAlarmManager *alarmManager;
 
     if ([telephonyManager isUsingVPNConnection]) {
 		vpnConnected = YES;
-		runAllForTrigger(@"VPN-CONNECTED");
+		activateTrigger(@"VPN-CONNECTED");
 	}
 
 	if (![telephonyManager isUsingVPNConnection] && vpnConnected) {
 		vpnConnected = NO;
-		runAllForTrigger(@"VPN-DISCONNECTED");
+		activateTrigger(@"VPN-DISCONNECTED");
 	}
 }
 
@@ -294,7 +294,7 @@ MTAlarmManager *alarmManager;
 		ctx[@"NOTIFICATION_MESSAGE"] = content.message;
 		ctx[@"NOTIFICATION_SUBTITLE"] = content.subtitle;
 		ctx[@"NOTIFICATION_TOPIC"] = content.topic;
-		runAllForTrigger(@"NOTIFICATION-RECEIVE");
+		activateTrigger(@"NOTIFICATION-RECEIVE");
 	}
 }
 
@@ -315,7 +315,7 @@ MTAlarmManager *alarmManager;
 
 - (void)_processDidLaunch:(id)arg {
 	%orig;
-	runAllForTrigger(@"APPLICATION-LAUNCH");
+	activateTrigger(@"APPLICATION-LAUNCH");
 }
 
 %end
@@ -325,11 +325,11 @@ MTAlarmManager *alarmManager;
 
 - (void)_finishUIUnlockFromSource:(int)source withOptions:(id)options {
 	%orig;
-	runAllForTrigger(@"DEVICE-UNLOCK");
+	activateTrigger(@"DEVICE-UNLOCK");
 }
 
 - (BOOL)_lockUI {
-	if (springBoardReady) runAllForTrigger(@"DEVICE-LOCK");
+	if (springBoardReady) activateTrigger(@"DEVICE-LOCK");
 	return %orig;
 }
 
@@ -363,12 +363,12 @@ void updateScripts() {
 
 		// Ringer toggle trigger
 		[[NSNotificationCenter defaultCenter] addObserverForName:@"SBRingerChangedNotification" object:nil queue:nil usingBlock:^(NSNotification *notif){
-			if (springBoardReady) runAllForTrigger(@"HWBUTTON-RINGERTOGGLE");
+			if (springBoardReady) activateTrigger(@"HWBUTTON-RINGERTOGGLE");
 		}];
 
 		// Now playing change trigger
 		[[NSNotificationCenter defaultCenter] addObserverForName:@"SBMediaNowPlayingChangedNotification" object:nil queue:nil usingBlock:^(NSNotification *notif){
-			if (springBoardReady) runAllForTrigger(@"MEDIA-NOWPLAYINGCHANGE");
+			if (springBoardReady) activateTrigger(@"MEDIA-NOWPLAYINGCHANGE");
 		}];
 
 		// Volume change notification
@@ -376,9 +376,9 @@ void updateScripts() {
 			if (!springBoardReady) return;
 
 			if ([notif.userInfo[@"AVSystemController_AudioCategoryNotificationParameter"] isEqualToString:@"Audio/Video"]) {
-				runAllForTrigger(@"VOLUME-MEDIACHANGE");
+				activateTrigger(@"VOLUME-MEDIACHANGE");
 			} else if([notif.userInfo[@"AVSystemController_AudioCategoryNotificationParameter"] isEqualToString:@"Ringtone"]) {
-				runAllForTrigger(@"VOLUME-RINGERCHANGE");
+				activateTrigger(@"VOLUME-RINGERCHANGE");
 			}
 		}];
 	}

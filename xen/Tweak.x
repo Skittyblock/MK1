@@ -1,30 +1,28 @@
 // MK1 XenHTML Integration - Copyright (c) 2020 Castyte. All rights reserved.
-
+// Modified work copyright (c) 2020 Skitty.
 #import <WebKit/WebKit.h>
 #import <AppSupport/CPDistributedMessagingCenter.h>
 #import <rocketbootstrap/rocketbootstrap.h>
-
-@interface XENHWidgetController <WKScriptMessageHandler>
-@end
+#import "XENHWidgetController.h"
 
 static CPDistributedMessagingCenter *messagingCenter = nil;
 
-
 %group NeedsCreate
-
 %hook XENHWidgetController
 
 %new
-
--(void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler{
+- (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
 	NSURL *url = navigationAction.request.URL;
-	if([url.scheme isEqualToString:@"mk1"]){
+	if ([url.scheme isEqualToString:@"mk1"]) {
 		NSDictionary *userInfo;
-		if(url.pathComponents.count > 2) userInfo = @{@"name": url.pathComponents[1], @"arg": url.lastPathComponent};
-		else userInfo = @{@"name": url.lastPathComponent};
-		if([url.host isEqualToString:@"runscript"]){
+		if (url.pathComponents.count > 2) {
+			userInfo = @{@"name": url.pathComponents[1], @"arg": url.lastPathComponent};
+		} else {
+			userInfo = @{@"name": url.lastPathComponent};
+		}
+		if ([url.host isEqualToString:@"runscript"]) {
 			[messagingCenter sendMessageName:@"runscript" userInfo:userInfo];
-		} else if([url.host isEqualToString:@"runtrigger"]){
+		} else if ([url.host isEqualToString:@"runtrigger"]) {
 			[messagingCenter sendMessageName:@"runtrigger" userInfo:userInfo];
 		}
 		decisionHandler(WKNavigationActionPolicyCancel);
@@ -34,22 +32,23 @@ static CPDistributedMessagingCenter *messagingCenter = nil;
 }
 
 %end
-
 %end
 
 %group NeedsHook
-
 %hook XENHWidgetController
 
--(void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler{
+- (void)webView:(WKWebView *)webView decidePolicyForNavigationAction:(WKNavigationAction *)navigationAction decisionHandler:(void (^)(WKNavigationActionPolicy))decisionHandler {
 	NSURL *url = navigationAction.request.URL;
-	if([url.scheme isEqualToString:@"mk1"]){
+	if ([url.scheme isEqualToString:@"mk1"]) {
 		NSDictionary *userInfo;
-		if(url.pathComponents.count > 2) userInfo = @{@"name": url.pathComponents[1], @"arg": url.lastPathComponent};
-		else userInfo = @{@"name": url.lastPathComponent};
-		if([url.host isEqualToString:@"runscript"]){
+		if (url.pathComponents.count > 2) {
+			userInfo = @{@"name": url.pathComponents[1], @"arg": url.lastPathComponent};
+		} else {
+			userInfo = @{@"name": url.lastPathComponent};
+		}
+		if ([url.host isEqualToString:@"runscript"]){
 			[messagingCenter sendMessageName:@"runscript" userInfo:userInfo];
-		} else if([url.host isEqualToString:@"runtrigger"]){
+		} else if ([url.host isEqualToString:@"runtrigger"]) {
 			[messagingCenter sendMessageName:@"runtrigger" userInfo:userInfo];
 		}
 		decisionHandler(WKNavigationActionPolicyCancel);
@@ -59,14 +58,12 @@ static CPDistributedMessagingCenter *messagingCenter = nil;
 }
 
 %end
-
 %end
 
-
-%ctor{
-	messagingCenter = [CPDistributedMessagingCenter centerNamed:@"com.castyte.mk1"];
+%ctor {
+	messagingCenter = [CPDistributedMessagingCenter centerNamed:@"xyz.skitty.mk1"];
 	rocketbootstrap_distributedmessagingcenter_apply(messagingCenter);
-	if([%c(XENHWidgetController) instancesRespondToSelector:@selector(webView:decidePolicyForNavigationAction:decisionHandler:)]){
+	if ([%c(XENHWidgetController) instancesRespondToSelector:@selector(webView:decidePolicyForNavigationAction:decisionHandler:)]) {
 		%init(NeedsHook);
 	} else {
 		%init(NeedsCreate);

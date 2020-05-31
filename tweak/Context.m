@@ -24,27 +24,22 @@ void setupContext() {
 			 this could be fixed by having a 'MK1.<SCRIPTNAME<.exports' to export variables for use in other scripts, and all other variable being kept inside the script
 	
 	 		 the context should've ideally used JSExport to sort the different categories into classes, but i did not know JSExport existed when starting this */
-
-	ctx[@"alert"] = ^(JSValue *jtitle, JSValue *jmsg){
+	ctx[@"alert"] = ^(JSValue *jtitle, JSValue *jmsg) {
 		NSString *title = toStringCheckNull(jtitle);
 		NSString *msg = toStringCheckNull(jmsg);
 
 		UIViewController *vc = [[UIApplication sharedApplication] keyWindow].rootViewController;
 		
-		UIAlertController* alert = [UIAlertController alertControllerWithTitle:title
-	                               message:msg
-	                               preferredStyle:UIAlertControllerStyleAlert];
+		UIAlertController* alert = [UIAlertController alertControllerWithTitle:title message:msg preferredStyle:UIAlertControllerStyleAlert];
  
-		UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault
-										handler:^(UIAlertAction * action) {}];
+		UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {}];
 		
 		[alert addAction:okAction];
 		[vc presentViewController:alert animated:YES completion:nil];
 	};
 
-
 	// RocketBootstrap
-	ctx[@"sendRocketBootstrapMessage"] = ^(NSString *center, NSString *message, NSDictionary *userInfo){
+	ctx[@"sendRocketBootstrapMessage"] = ^(NSString *center, NSString *message, NSDictionary *userInfo) {
 		static CPDistributedMessagingCenter *c = nil;
 		c = [CPDistributedMessagingCenter centerNamed:center];
 		rocketbootstrap_distributedmessagingcenter_apply(c);
@@ -58,11 +53,10 @@ void setupContext() {
 	};
 
 	// Shell
-	ctx[@"shellrun"] = ^(NSString *command, JSValue *cb){
+	ctx[@"shellrun"] = ^(NSString *command, JSValue *cb) {
 		NSTask *task = [[NSTask alloc] init];
 		[task setLaunchPath:@"/bin/sh"];
 		[task setArguments:@[@"-c", command]];
-
 
 		NSPipe *stdoutPipe = [NSPipe pipe];
 		[task setStandardOutput:stdoutPipe];
@@ -70,7 +64,7 @@ void setupContext() {
 		NSPipe *stderrPipe = [NSPipe pipe];
 		[task setStandardError:stderrPipe];
 
-		task.terminationHandler = ^(NSTask *task){
+		task.terminationHandler = ^(NSTask *task) {
 			if(![cb isObject]) return;
 			dispatch_async(dispatch_get_main_queue(), ^{
 				NSNumber *status = [NSNumber numberWithInteger:task.terminationStatus];
@@ -87,9 +81,11 @@ void setupContext() {
 		@"isSpringBoard": ^{
 			return [userAgent springBoardIsActive];
 		},
+
 		@"bundleID": ^{
 			return [[springBoard _accessibilityFrontMostApplication] bundleIdentifier];
 		},
+
 		@"name": ^{
 			return [[springBoard _accessibilityFrontMostApplication] displayName];
 		}
@@ -101,9 +97,11 @@ void setupContext() {
 		@"isControlCenterShowing": ^{
 			return [[[UIApplication sharedApplication] keyWindow] isKindOfClass:objc_getClass("SBControlCenterWindow")];
 		},
+
 		@"isHomeScreenShowing": ^{
 			return [[[UIApplication sharedApplication] keyWindow] isKindOfClass:objc_getClass("SBHomeScreenWindow")];
 		},
+
 		@"isCoverSheetShowing": ^{
 			return [[[UIApplication sharedApplication] keyWindow] isKindOfClass:objc_getClass("SBCoverSheetWindow")];
 		}
@@ -114,7 +112,8 @@ void setupContext() {
 		@"getLevel": ^{
 			return [UIScreen mainScreen].brightness;
 		},
-		@"setLevel": ^(float level){
+
+		@"setLevel": ^(float level) {
 			[[objc_getClass("SBBrightnessController") sharedBrightnessController] setBrightnessLevel:level];
 		}
 	};
@@ -124,7 +123,8 @@ void setupContext() {
 		@"isEnabled": ^{
 			return [objc_getClass("PSCellularDataSettingsDetail") isEnabled];
 		},
-		@"setEnabled": ^(BOOL enabled){
+
+		@"setEnabled": ^(BOOL enabled) {
 			[objc_getClass("PSCellularDataSettingsDetail") setEnabled:enabled];
 		}
 	};
@@ -136,15 +136,18 @@ void setupContext() {
 			[[objc_getClass("AVSystemController") sharedAVSystemController] getVolume:&vol forCategory:@"Ringtone"];
 			return vol;
 		},
-		@"setRinger":  ^(float vol){
+
+		@"setRinger": ^(float vol) {
 			[[objc_getClass("AVSystemController") sharedAVSystemController] setVolumeTo:vol forCategory:@"Ringtone"];
 		},
+
 		@"getMedia": ^{
 			float vol;
 			[[objc_getClass("AVSystemController") sharedAVSystemController] getVolume:&vol forCategory:@"Audio/Video"];
 			return vol;
 		},
-		@"setMedia":  ^(float vol){
+
+		@"setMedia": ^(float vol) {
 			[[objc_getClass("AVSystemController") sharedAVSystemController] setVolumeTo:vol forCategory:@"Audio/Video"];
 		}
 	};
@@ -163,7 +166,7 @@ void setupContext() {
 			return [wifiMan signalStrengthRSSI];
 		},
 
-		@"setEnabled": ^(BOOL enabled){
+		@"setEnabled": ^(BOOL enabled) {
 			[wifiMan setWiFiEnabled:enabled];
 		}
 	};
@@ -171,70 +174,69 @@ void setupContext() {
 
 	// Alarms
 	ctx[@"alarm"] = @{
-		@"getTitle": ^(NSString *ID){
-			if(alarms[ID]) return alarms[ID].displayTitle;
+		@"getTitle": ^(NSString *ID) {
+			if (alarms[ID]) return alarms[ID].displayTitle;
 			else return @"";
 		},
 
-		@"getHour": ^(NSString *ID){
-			if(alarms[ID]) return alarms[ID].hour;
+		@"getHour": ^(NSString *ID) {
+			if (alarms[ID]) return alarms[ID].hour;
 			else return (unsigned long long)NULL;
 		},
 
-		@"getMinute": ^(NSString *ID){
-			if(alarms[ID]) return alarms[ID].minute;
+		@"getMinute": ^(NSString *ID) {
+			if (alarms[ID]) return alarms[ID].minute;
 			else return (unsigned long long)NULL;
 		},
 
-		@"isEnabled": ^(NSString *ID){
-			if(alarms[ID]) return alarms[ID].enabled;
+		@"isEnabled": ^(NSString *ID) {
+			if (alarms[ID]) return alarms[ID].enabled;
 			else return NO;
 		},
 
-		@"isSnoozed": ^(NSString *ID){
-			if(alarms[ID]) return alarms[ID].snoozed;
+		@"isSnoozed": ^(NSString *ID) {
+			if (alarms[ID]) return alarms[ID].snoozed;
 			else return NO;
 		},
 
-		@"getNextFireDate": ^(NSString *ID){
-			if(alarms[ID]) return alarms[ID].nextFireDate;
+		@"getNextFireDate": ^(NSString *ID) {
+			if (alarms[ID]) return alarms[ID].nextFireDate;
 			else return (NSDate *)nil;
 		},
 
-		@"setEnabled": ^(NSString *ID, BOOL enabled){
-			if(alarms[ID]){
+		@"setEnabled": ^(NSString *ID, BOOL enabled) {
+			if (alarms[ID]) {
 				alarms[ID].enabled = enabled;
 				[alarmManager updateAlarm:alarms[ID]];	
 			}
 		},
 
-		@"setHour": ^(NSString *ID, unsigned long long hour){
-			if(alarms[ID]){
+		@"setHour": ^(NSString *ID, unsigned long long hour) {
+			if (alarms[ID]) {
 				alarms[ID].hour = hour;
 				[alarmManager updateAlarm:alarms[ID]];
 			}
 		},
 
-		@"setMinute": ^(NSString *ID, unsigned long long minute){
-			if(alarms[ID]){
+		@"setMinute": ^(NSString *ID, unsigned long long minute) {
+			if (alarms[ID]) {
 				alarms[ID].minute = minute;
 				[alarmManager updateAlarm:alarms[ID]];
 			}
 		},
 
-		@"snooze": ^(NSString *ID){
-			if(alarms[ID]){
+		@"snooze": ^(NSString *ID) {
+			if (alarms[ID]) {
 				[alarmManager snoozeAlarmWithIdentifier:ID];
 			}
 		}
 	};
 
 	ctx[@"allAlarms"] = ^{
-		for(unsigned long long i=0; i<[alarmManager alarmCount]; i++){
+		for (unsigned long long i = 0; i < [alarmManager alarmCount]; i++) {
 			MTAlarm *alarm = [alarmManager alarmAtIndex:i];
 			alarms[[alarm alarmIDString]] = alarm;
 		}
-
 		return [alarms allKeys];
 	};
 
@@ -245,7 +247,7 @@ void setupContext() {
 			return [[objc_getClass("BluetoothManager") sharedInstance] enabled];
 		},
 
-		@"setEnabled": ^(BOOL enabled){ // NOTE same here
+		@"setEnabled": ^(BOOL enabled) {
 			[[objc_getClass("BluetoothManager") sharedInstance] setEnabled:enabled];
 		},
 
@@ -262,75 +264,72 @@ void setupContext() {
 		@"pairedDevices": ^{
 			NSMutableArray *ret = [NSMutableArray array];
 			NSArray *devices = [[objc_getClass("BluetoothManager") sharedInstance] pairedDevices];
-			for(BluetoothDevice *device in devices){
+			for (BluetoothDevice *device in devices) {
 				bluetoothDevices[[device scoUID]] = device;
 				[ret addObject:[device scoUID]];
 			}
-
 			return ret;
 		}
 	};
 
 	ctx[@"bluetoothDevice"] = @{
-		@"name": ^(NSString *dID){
-			if(bluetoothDevices[dID]) return [bluetoothDevices[dID] name];
+		@"name": ^(NSString *dID) {
+			if (bluetoothDevices[dID]) return [bluetoothDevices[dID] name];
 			else return (id)nil;
 		},
 
-		@"address": ^(NSString *dID){
-			if(bluetoothDevices[dID]) return [(BluetoothDevice *)bluetoothDevices[dID] address];
+		@"address": ^(NSString *dID) {
+			if (bluetoothDevices[dID]) return [(BluetoothDevice *)bluetoothDevices[dID] address];
 			else return (id)nil;
 		},
 
-		@"connected": ^(NSString *dID){
-			if(bluetoothDevices[dID]) return [bluetoothDevices[dID] connected];
+		@"connected": ^(NSString *dID) {
+			if (bluetoothDevices[dID]) return [bluetoothDevices[dID] connected];
 			else return NO;
 		},
 
-		@"disconnect": ^(NSString *dID){
-			if(bluetoothDevices[dID]) [bluetoothDevices[dID] disconnect];
+		@"disconnect": ^(NSString *dID) {
+			if (bluetoothDevices[dID]) [bluetoothDevices[dID] disconnect];
 		},
 
-		@"connect": ^(NSString *dID){
-			if(bluetoothDevices[dID]) [bluetoothDevices[dID] connect];
+		@"connect": ^(NSString *dID) {
+			if (bluetoothDevices[dID]) [bluetoothDevices[dID] connect];
 		},
 
-		@"batteryLevel": ^(NSString *dID){
-			if(bluetoothDevices[dID]) return [(BluetoothDevice *)bluetoothDevices[dID] batteryLevel];
+		@"batteryLevel": ^(NSString *dID) {
+			if (bluetoothDevices[dID]) return [(BluetoothDevice *)bluetoothDevices[dID] batteryLevel];
 			else return -1;
 		},
 
-		@"vendorID": ^(NSString *dID){
-			if(bluetoothDevices[dID]) return [bluetoothDevices[dID] vendorId];
+		@"vendorID": ^(NSString *dID) {
+			if (bluetoothDevices[dID]) return [bluetoothDevices[dID] vendorId];
 			else return (unsigned)0;
 		},
 
-		@"paired": ^(NSString *dID){
-			if(bluetoothDevices[dID]) return [bluetoothDevices[dID] paired];
+		@"paired": ^(NSString *dID) {
+			if (bluetoothDevices[dID]) return [bluetoothDevices[dID] paired];
 			else return NO;
 		},
 
-		@"productID": ^(NSString *dID){
-			if(bluetoothDevices[dID]) return [bluetoothDevices[dID] productId];
+		@"productID": ^(NSString *dID) {
+			if (bluetoothDevices[dID]) return [bluetoothDevices[dID] productId];
 			else return (unsigned)0;
 		},
 
-		@"unpair": ^(NSString *dID){
-			if(bluetoothDevices[dID]) [bluetoothDevices[dID] unpair];
+		@"unpair": ^(NSString *dID) {
+			if (bluetoothDevices[dID]) [bluetoothDevices[dID] unpair];
 		},
 	};
 
 	// Confirm alerts
-	ctx[@"confirm"] = ^(JSValue *jtitle, JSValue *jmsg, JSValue *cb){
+	ctx[@"confirm"] = ^(JSValue *jtitle, JSValue *jmsg, JSValue *cb) {
 		NSString *title = toStringCheckNull(jtitle);
 		NSString *msg = toStringCheckNull(jmsg);
 
 		UIViewController *vc = [[UIApplication sharedApplication] keyWindow].rootViewController;
-		UIAlertController* alert = [UIAlertController alertControllerWithTitle:title
-                               message:msg
-                               preferredStyle:UIAlertControllerStyleAlert];
+		UIAlertController* alert = [UIAlertController alertControllerWithTitle:title message:msg preferredStyle:UIAlertControllerStyleAlert];
  
-		UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault
+		UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault
 		handler:^(UIAlertAction * action) {
 			[cb callWithArguments:@[@YES]];
 		}];
@@ -346,16 +345,16 @@ void setupContext() {
 		[vc presentViewController:alert animated:YES completion:nil];
 	};
 
-	// Context menus
-	ctx[@"menu"] = ^(JSValue *jtitle, JSValue *jmsg, NSArray<NSString *>* options, JSValue *cb){
+	// Alert menu
+	ctx[@"menu"] = ^(JSValue *jtitle, JSValue *jmsg, NSArray<NSString *> *options, JSValue *cb) {
 		NSString *title = toStringCheckNull(jtitle);
 		NSString *msg = toStringCheckNull(jmsg);
 
 		UIViewController *vc = [[UIApplication sharedApplication] keyWindow].rootViewController;
-		UIAlertController* alert = [UIAlertController alertControllerWithTitle:title message:msg preferredStyle:UIAlertControllerStyleAlert];
+		UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:msg preferredStyle:UIAlertControllerStyleAlert];
  
-		[options enumerateObjectsUsingBlock:^(NSString *opt, NSUInteger idx, BOOL *stop){
-			UIAlertAction* action = [UIAlertAction actionWithTitle:opt style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {
+		[options enumerateObjectsUsingBlock:^(NSString *opt, NSUInteger idx, BOOL *stop) {
+			UIAlertAction* action = [UIAlertAction actionWithTitle:opt style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
 				[cb callWithArguments:@[[NSNumber numberWithUnsignedInteger:idx]]];
 			}];
 
@@ -366,22 +365,20 @@ void setupContext() {
 	};
 
 	// Prompt alert
-	ctx[@"prompt"] = ^(JSValue *jtitle, JSValue *jmsg, JSValue *cb){
+	ctx[@"prompt"] = ^(JSValue *jtitle, JSValue *jmsg, JSValue *cb) {
 		NSString *title = toStringCheckNull(jtitle);
 		NSString *msg = toStringCheckNull(jmsg);
 
 		UIViewController *vc = [[UIApplication sharedApplication] keyWindow].rootViewController;
-		UIAlertController* alert = [UIAlertController alertControllerWithTitle:title
-                               message:msg
-                               preferredStyle:UIAlertControllerStyleAlert];
+		UIAlertController* alert = [UIAlertController alertControllerWithTitle:title message:msg preferredStyle:UIAlertControllerStyleAlert];
  
-		UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault
+		UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault
 		handler:^(UIAlertAction *action) {
 			NSString *text = [alert textFields][0].text;
 			[cb callWithArguments:@[text]];
 		}];
 
-		UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action){
+		UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
 			[cb callWithArguments:@[@NO]];
 		}];
 
@@ -416,11 +413,11 @@ void setupContext() {
 		},
 
 		// FIXME: this is horrible
-		@"getNowPlayingInfo": ^(JSValue *cb){
-			if(![cb isObject]) return;
+		@"getNowPlayingInfo": ^(JSValue *cb) {
+			if (![cb isObject]) return;
 
-			MRMediaRemoteGetNowPlayingInfo(dispatch_get_main_queue(), ^(CFDictionaryRef cfinfo){
-				[cb callWithArguments: @[ [JSValue valueWithObject:(__bridge NSDictionary *)cfinfo inContext:ctx] ] ];
+			MRMediaRemoteGetNowPlayingInfo(dispatch_get_main_queue(), ^(CFDictionaryRef cfinfo) {
+				[cb callWithArguments: @[[JSValue valueWithObject:(__bridge NSDictionary *)cfinfo inContext:ctx]]];
 			});
 		}
 	};
@@ -456,8 +453,7 @@ void setupContext() {
 		},
 
 		@"isLandscape": ^{
-			return ([springBoard activeInterfaceOrientation] == UIInterfaceOrientationLandscapeRight
-					|| [springBoard activeInterfaceOrientation] == UIInterfaceOrientationLandscapeLeft);
+			return ([springBoard activeInterfaceOrientation] == UIInterfaceOrientationLandscapeRight || [springBoard activeInterfaceOrientation] == UIInterfaceOrientationLandscapeLeft);
 		},
 
 		@"batteryLevel": ^{
@@ -504,7 +500,7 @@ void setupContext() {
 			return vpnConnected;
 		},
 
-		@"setEnabled": ^(BOOL enabled){
+		@"setEnabled": ^(BOOL enabled) {
 			[vpnController setVPNActive:enabled];
 		}
 	};
@@ -514,32 +510,32 @@ void setupContext() {
 		@"getLevel": ^{
 			return flashlight.flashlightLevel;
 		},
-		@"setLevel": ^(float level){
+		@"setLevel": ^(float level) {
 			[flashlight setFlashlightLevel:level withError:nil];
 		}
 	};
 
 	// Open URL
-	ctx[@"openURL"] = ^(NSString *url){
+	ctx[@"openURL"] = ^(NSString *url) {
 		[[UIApplication sharedApplication] openURL:[NSURL URLWithString:url] options:@{} completionHandler:nil];
 	};
 
 	// Open application
-	ctx[@"openApp"] = ^(NSString *bundleID){
+	ctx[@"openApp"] = ^(NSString *bundleID) {
 		[[UIApplication sharedApplication] launchApplicationWithIdentifier:bundleID suspended:NO];
 	};
 
 	// Text to speech
-	ctx[@"textToSpeech"] = ^(NSString *text){
+	ctx[@"textToSpeech"] = ^(NSString *text) {
 		AVSpeechUtterance *utterance = [AVSpeechUtterance speechUtteranceWithString:text];
 		AVSpeechSynthesizer *syn = [[AVSpeechSynthesizer alloc] init];
 		[syn speakUtterance:utterance];
 	};
 
-	// setTimeout function
-	ctx[@"setTimeout"] = ^(JSValue *cb, double ms){
+	// Timeout functions
+	ctx[@"setTimeout"] = ^(JSValue *cb, double ms) {
 		NSString *_id = [[NSUUID UUID] UUIDString];
-		NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:ms/1000 repeats:NO block:^(NSTimer *timer){
+		NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:ms/1000 repeats:NO block:^(NSTimer *timer) {
 			[cb callWithArguments:@[]];
 			timeouts[_id] = NULL;
 		}];
@@ -547,25 +543,25 @@ void setupContext() {
 		return _id;
 	};
 
-	ctx[@"clearTimeout"] = ^(NSString *_id){
-		if(timeouts[_id]){
+	ctx[@"clearTimeout"] = ^(NSString *_id) {
+		if (timeouts[_id]) {
 			[timeouts[_id] invalidate];
 			timeouts[_id] = NULL;
 		}
 	};
 
-	// setInterval function
-	ctx[@"setInterval"] = ^(JSValue *cb, double ms){
+	// Interval functions
+	ctx[@"setInterval"] = ^(JSValue *cb, double ms) {
 		NSString *_id = [[NSUUID UUID] UUIDString];
-		NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:ms/1000 repeats:YES block:^(NSTimer *timer){
+		NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:ms/1000 repeats:YES block:^(NSTimer *timer) {
 			[cb callWithArguments:@[]];
 		}];
 		intervals[_id] = timer;
 		return _id;
 	};
 
-	ctx[@"clearInterval"] = ^(NSString *_id){
-		if(intervals[_id]){
+	ctx[@"clearInterval"] = ^(NSString *_id) {
+		if (intervals[_id]) {
 			[intervals[_id] invalidate];
 			intervals[_id] = NULL;
 		}
@@ -573,7 +569,7 @@ void setupContext() {
 
 	// Low power mode
 	ctx[@"lpm"] = @{
-		@"setEnabled": ^(bool enabled){
+		@"setEnabled": ^(bool enabled) {
 			[[objc_getClass("_CDBatterySaver") sharedInstance] setMode:enabled];
 		},
 
@@ -588,15 +584,15 @@ void setupContext() {
 			return [[[objc_getClass("RadiosPreferences") alloc] init] airplaneMode];
 		},
 
-		@"setEnabled": ^(BOOL enabled){
+		@"setEnabled": ^(BOOL enabled) {
 			[[[objc_getClass("RadiosPreferences") alloc] init] setAirplaneMode:enabled];
 		}
 	};
 
 	// Orientation lock
 	ctx[@"orientationLock"] = @{
-		@"setEnabled": ^(BOOL enabled){
-			if(enabled){
+		@"setEnabled": ^(BOOL enabled) {
+			if (enabled) {
 				[[objc_getClass("SBOrientationLockManager") sharedInstance] lock];
 			} else {
 				[[objc_getClass("SBOrientationLockManager") sharedInstance] unlock];
@@ -621,23 +617,26 @@ void setupContext() {
 
 	// Console
 	ctx[@"console"] = @{
-		@"log": ^(NSString *txt){
+		@"log": ^(NSString *txt) {
 			MK1Log(MK1LogInfo, txt);
 		},
-		@"error": ^(NSString *txt){
+
+		@"error": ^(NSString *txt) {
 			MK1Log(MK1LogError, txt);
 		},
-		@"info": ^(NSString *txt){
+
+		@"info": ^(NSString *txt) {
 			MK1Log(MK1LogInfo, txt);
 		},
-		@"warn": ^(NSString *txt){
+
+		@"warn": ^(NSString *txt) {
 			MK1Log(MK1LogWarn, txt);
 		}
 	};
 
 	// File management
 	ctx[@"file"] = @{
-		@"read": ^(NSString *path){
+		@"read": ^(NSString *path) {
 			NSError *error;
 			NSString *file = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:&error];
 			if (error) {
@@ -648,39 +647,40 @@ void setupContext() {
 			}
 		},
 
-		@"readPlist": ^(NSString *path){
+		@"readPlist": ^(NSString *path) {
 			NSError *error;
 			NSDictionary *o = [NSDictionary dictionaryWithContentsOfURL:[NSURL URLWithString:[NSString stringWithFormat:@"file://%@", path]] error:&error];
-			if(error) alertError([error localizedDescription]);
-			else return o;
-
-			return @{};
+			if (error) {
+				alertError([error localizedDescription]);
+				return @{};
+			}
+			return o;
 		},
 
-		@"writePlist": ^(NSString *path, NSDictionary *data){
+		@"writePlist": ^(NSString *path, NSDictionary *data) {
 			NSError *error;
 			[data writeToURL:[NSURL URLWithString:[NSString stringWithFormat:@"file://%@", path]] error:&error];
-			if(error) alertError([error localizedDescription]);
+			if (error) alertError([error localizedDescription]);
 		},
 
-		// prefsd or whatever doesnt refresh the prefs while the process is running unless you pull some retarded shit like this
-		@"writePreferencesPlist": ^(NSString *domain, NSDictionary *data){
+		// prefsd or whatever doesnt refresh the prefs while the process is running unless you do something like this
+		@"writePreferencesPlist": ^(NSString *domain, NSDictionary *data) {
 			CFStringRef appId = (__bridge CFStringRef)domain;
-			if(!CFPreferencesAppSynchronize(appId)) return alertError(@"Error while synchronizing preferences");
-			for(id key in data) {
-				if(![key isKindOfClass:[NSString class]]) continue;
+			if (!CFPreferencesAppSynchronize(appId)) return alertError(@"Error while synchronizing preferences");
+			for (id key in data) {
+				if (![key isKindOfClass:[NSString class]]) continue;
 				CFStringRef cfKey = (__bridge CFStringRef)key;
 				CFPropertyListRef val = (__bridge CFPropertyListRef)data[key];
 				CFPreferencesSetAppValue(cfKey, val, appId);
 			}
 
-			if(!CFPreferencesAppSynchronize(appId)) return alertError(@"Error while synchronizing preferences");
+			if (!CFPreferencesAppSynchronize(appId)) return alertError(@"Error while synchronizing preferences");
 		},
 
-		@"write": ^(NSString *path, NSString *data){
+		@"write": ^(NSString *path, NSString *data) {
 			NSError *error;
 			[data writeToFile:path atomically:NO encoding:NSUTF8StringEncoding error:&error];
-			if(error) alertError([error localizedDescription]);
+			if (error) alertError([error localizedDescription]);
 		}
 	};
 
@@ -689,8 +689,8 @@ void setupContext() {
 		[[objc_getClass("SBCombinationHardwareButtonActions") alloc] performTakeScreenshotAction];
 	};
 
-	// Darwin notification
-	ctx[@"sendDarwinNotif"] = ^(NSString *notif){
+	// Darwin notifications
+	ctx[@"sendDarwinNotif"] = ^(NSString *notif) {
 		return CFNotificationCenterPostNotification(CFNotificationCenterGetDarwinNotifyCenter(), (__bridge CFStringRef)notif, NULL, NULL, false);
 	};
 
@@ -700,7 +700,7 @@ void setupContext() {
 			return UIPasteboard.generalPasteboard.string;
 		},
 
-		@"set": ^(NSString *string){
+		@"set": ^(NSString *string) {
 			UIPasteboard.generalPasteboard.string = string;
 		}
 	};
@@ -716,22 +716,22 @@ void setupContext() {
 			setupLogger(set);
 		},
 
-		@"runScript": ^(NSString *script, NSString *arg){
-			if(arg) ctx[@"MK1_ARG"] = arg;
+		@"runScript": ^(NSString *script, NSString *arg) {
+			if (arg) ctx[@"MK1_ARG"] = arg;
 			runScriptWithName(script);
 		}, 
 
-		@"runTrigger": ^(NSString *trigger, NSString *arg){
-			if(arg) ctx[@"MK1_ARG"] = arg;
-			runAllForTrigger(trigger);
+		@"runTrigger": ^(NSString *trigger, NSString *arg) {
+			if (arg) ctx[@"MK1_ARG"] = arg;
+			activateTrigger(trigger);
 		},
 
-		// an easter egg dedicated to my friend uwu who came up with the name 'MK1'
+		// an easter egg dedicated to uwu who came up with the name 'MK1'
 		@"uwu": ^{
 			NSData *data = [NSData dataWithContentsOfURL:[NSURL URLWithString:@"https://pbs.twimg.com/media/EUaCY0VXkAIY6g6.jpg"]];
-			if(!data) return @"";
+			if (!data) return @"";
 			UIImageView *imageView = [[UIImageView alloc] initWithImage:[UIImage imageWithData:data]];
-			imageView.frame = CGRectMake(0,0,100,80);
+			imageView.frame = CGRectMake(0, 0, 100, 80);
 			imageView.contentMode = UIViewContentModeScaleAspectFit;
 			[[[UIApplication sharedApplication] keyWindow] addSubview:imageView];
 			return @"Image Source: https://twitter.com";

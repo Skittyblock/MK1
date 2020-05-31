@@ -1,9 +1,9 @@
-// MK1MessagingCenter.h
+// MKMessagingCenter.h
 
 #import <AppSupport/CPDistributedMessagingCenter.h>
 #import <rocketbootstrap/rocketbootstrap.h>
 
-@interface MK1MessagingCenter : NSObject {
+@interface MKMessagingCenter : NSObject {
 	CPDistributedMessagingCenter *_messagingCenter;
 }
 @end
