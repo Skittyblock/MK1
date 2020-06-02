@@ -6,7 +6,7 @@ void initContextIfNeeded();
 void setupHardActions();
 void setupLogger(BOOL alertOnError);
 
-void runScriptWithName(NSString *name);
+JSValue *runScriptWithName(NSString *name);
 void activateTrigger(NSString *trigger);
 BOOL triggerHasScripts(NSString *trigger);
 

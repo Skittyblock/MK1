@@ -297,10 +297,9 @@
     [alert addAction:shareAction];
     
     if ([[UIApplication sharedApplication] canOpenURL:[NSURL URLWithString:@"filza://"]]) {
-        UIAlertAction *filzaAction = [UIAlertAction actionWithTitle:@"Show in Filza" style:UIAlertActionStyleDefault
-            handler:^(UIAlertAction * action) {
-                [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[NSString stringWithFormat:@"filza://view/%@", self.scripts[indexPath.row].path]] options:@{} completionHandler:nil];
-            }];
+        UIAlertAction *filzaAction = [UIAlertAction actionWithTitle:@"Show in Filza" style:UIAlertActionStyleDefault handler:^(UIAlertAction *action) {
+            [[UIApplication sharedApplication] openURL:[NSURL URLWithString:[NSString stringWithFormat:@"filza://view/%@", self.scripts[indexPath.row].path]] options:@{} completionHandler:nil];
+        }];
         [alert addAction:filzaAction];
     }
 

@@ -55,18 +55,19 @@ void setupLogger(BOOL alertOnError) {
 }
 
 // Run script with specified name
-void runScriptWithName(NSString *name) {
-	dispatch_async(dispatch_get_main_queue(), ^{
+JSValue *runScriptWithName(NSString *name) {
+	//dispatch_async(dispatch_get_main_queue(), ^{
 		NSString *path = [NSString stringWithFormat:@"/Library/MK1/Scripts/%@.js", name];
 		if (![[NSFileManager defaultManager] fileExistsAtPath:path]) {
-			return alertError([NSString stringWithFormat:@"Script file at '%@' does not exist", path]);
+			alertError([NSString stringWithFormat:@"Script file at '%@' does not exist", path]);
+			return nil;
 		}
 		NSString *script = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil]; 
 		initContextIfNeeded();
 
 		ctx[@"SCRIPT_NAME"] = name;
-		[ctx evaluateScript:script];
-	});
+		return [ctx evaluateScript:script];
+	//});
 }
 
 // Run all scripts for a trigger

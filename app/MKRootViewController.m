@@ -12,7 +12,6 @@
 	NSMutableArray *viewControllers = [[NSMutableArray alloc] init];
 	NSMutableArray *navControllers = [[NSMutableArray alloc] init];
 
-	// FIXME: tab bar images that don't require iOS 13
 	self.scriptsVC = [[MKScriptsViewController alloc] init];
 	self.scriptsVC.title = @"Scripts";
 	self.scriptsVC.tabBarItem = [[UITabBarItem alloc] initWithTitle:self.scriptsVC.title image:[[UIImage imageNamed:@"archivebox"] imageWithRenderingMode:UIImageRenderingModeAlwaysTemplate] tag:0];
