@@ -28,7 +28,9 @@
 
 		[_messagingCenter runServerOnCurrentThread];
 		[_messagingCenter registerForMessageName:@"runscript" target:self selector:@selector(handleMessageNamed:withUserInfo:)];
+		[_messagingCenter registerForMessageName:@"runScript" target:self selector:@selector(handleMessageNamed:withUserInfo:)];
 		[_messagingCenter registerForMessageName:@"runtrigger" target:self selector:@selector(handleMessageNamed:withUserInfo:)];
+		[_messagingCenter registerForMessageName:@"runTrigger" target:self selector:@selector(handleMessageNamed:withUserInfo:)];
 		[_messagingCenter registerForMessageName:@"updateScripts" target:self selector:@selector(handleMessageNamed:withUserInfo:)];
 	}
 
@@ -36,15 +38,15 @@
 }
 
 - (NSDictionary *)handleMessageNamed:(NSString *)name withUserInfo:(NSDictionary *)userInfo {
-	if ([name isEqualToString:@"runscript"] && userInfo[@"name"]) {
+	if (([name isEqualToString:@"runscript"] || [name isEqualToString:@"runScript"]) && userInfo[@"name"]) {
 		initContextIfNeeded();
-		if(userInfo[@"arg"]) ctx[@"MK1_ARG"] = userInfo[@"arg"];
+		if (userInfo[@"arg"]) ctx[@"MK1_ARG"] = userInfo[@"arg"];
 		runScriptWithName(userInfo[@"name"]);
-	} else if ([name isEqualToString:@"runtrigger"] && userInfo[@"name"]) {
+	} else if (([name isEqualToString:@"runtrigger"] || [name isEqualToString:@"runtrigger"]) && userInfo[@"name"]) {
 		initContextIfNeeded();
-		if(userInfo[@"arg"]) ctx[@"MK1_ARG"] = userInfo[@"arg"];
+		if (userInfo[@"arg"]) ctx[@"MK1_ARG"] = userInfo[@"arg"];
 		activateTrigger(userInfo[@"name"]);
-	} else if([name isEqualToString:@"updateScripts"]) {
+	} else if ([name isEqualToString:@"updateScripts"]) {
 		updateScripts();
 	}
 	return @{};

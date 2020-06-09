@@ -337,20 +337,23 @@ MTAlarmManager *alarmManager;
 
 // Update scripts
 void updateScripts() {
-	NSError *dError;
-    NSData *data = [NSData dataWithContentsOfFile:@"/Library/MK1/scripts.json" options:kNilOptions error:&dError];
-    if (dError) {
-    	MK1Log(MK1LogError, [dError localizedDescription]);
-    	scripts = @{};
-    	return;
+    NSString *path = @"/Library/MK1/scripts.plist";
+    if (![[NSFileManager defaultManager] fileExistsAtPath:path]) {
+        NSMutableDictionary *dict = [NSMutableDictionary dictionary];
+        [dict writeToFile:path atomically:YES];
     }
 
-    NSError *jError;
-	scripts = [NSJSONSerialization JSONObjectWithData:data options:kNilOptions error:&jError];
-	if (jError) {
-		MK1Log(MK1LogError, [jError localizedDescription]);
-		scripts = @{};
+	NSDictionary *scriptsPlist = [NSDictionary dictionaryWithContentsOfFile:path];
+	NSMutableDictionary *mutableScripts = [NSMutableDictionary dictionary];
+	
+	for (NSString *script in scriptsPlist) {
+		for (NSString *trigger in scriptsPlist[script][@"triggers"]) {
+			if (![[mutableScripts allKeys] containsObject:trigger]) mutableScripts[trigger] = [NSMutableArray array];
+			if (![mutableScripts[trigger] containsObject:script]) [mutableScripts[trigger] addObject:script];
+		}
 	}
+
+	scripts = [mutableScripts copy];
 }
 
 // Constructor

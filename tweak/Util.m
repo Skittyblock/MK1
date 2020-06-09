@@ -57,7 +57,7 @@ void setupLogger(BOOL alertOnError) {
 // Run script with specified name
 JSValue *runScriptWithName(NSString *name) {
 	//dispatch_async(dispatch_get_main_queue(), ^{
-		NSString *path = [NSString stringWithFormat:@"/Library/MK1/Scripts/%@.js", name];
+		NSString *path = [NSString stringWithFormat:@"/Library/MK1/Scripts/%@/index.js", name];
 		if (![[NSFileManager defaultManager] fileExistsAtPath:path]) {
 			alertError([NSString stringWithFormat:@"Script file at '%@' does not exist", path]);
 			return nil;

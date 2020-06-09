@@ -1,15 +1,23 @@
 
-SCRIPTS='{
-    "STATUSBAR-DOUBLETAP": [
-        "example"
-    ]
-}'
+SCRIPTS='<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Example</key>
+	<dict>
+		<key>triggers</key>
+		<array>
+			<string>STATUSBAR-DOUBLETAP</string>
+		</array>
+	</dict>
+</dict>
+</plist>'
 
 
-if [ ! -f "/Library/MK1/scripts.json" ]; then
-    echo "MK1: Scripts JSON not found, creating."
+if [ ! -f "/Library/MK1/scripts.plist" ]; then
+    echo "MK1: Scripts plist not found, creating."
     IFS='%'
-    echo $SCRIPTS >> /Library/MK1/scripts.json
+    echo $SCRIPTS >> /Library/MK1/scripts.plist
     unset IFS
 fi
 
