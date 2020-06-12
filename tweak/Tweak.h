@@ -18,10 +18,6 @@
 
 void updateScripts();
 
-enum MK1LogType {
-    MK1LogInfo, MK1LogWarn, MK1LogDebug, MK1LogError
-};
-
 extern JSContext *ctx;
 extern NSDictionary *scripts;
 extern BOOL springBoardReady;

@@ -2,6 +2,10 @@
 
 #import "Tweak.h"
 
+enum MK1LogType {
+    MK1LogInfo, MK1LogWarn, MK1LogDebug, MK1LogError
+};
+
 void initContextIfNeeded();
 void setupHardActions();
 void setupLogger(BOOL alertOnError);

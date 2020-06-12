@@ -10,6 +10,7 @@
 #import <signal.h>
 #import <unistd.h>
 #import "XMLHttpRequest.h"
+#import "JSPromise.h"
 
 // Setup JSContext functions
 // Main function implementations
@@ -747,4 +748,51 @@ void setupContext() {
 	};
 
 	ctx[@"XMLHttpRequest"] = [XMLHttpRequest class];
+
+	ctx[@"Promise"] = [JSPromise class];
+
+	// JavaScript fetch(url, options) which returns a Promise.
+	// Supports method, body, and headers for options. TODO: implement more
+	ctx[@"fetch"] = ^(NSString *link, NSDictionary *options) {
+		JSPromise *promise = [[JSPromise alloc] init];
+
+		promise.timer = [NSTimer scheduledTimerWithTimeInterval:1 repeats:NO block:^(NSTimer *timer) {
+			[timer invalidate];
+
+			NSURL *url = [NSURL URLWithString:link];
+			if (url) {
+				NSMutableURLRequest *req = [[NSMutableURLRequest alloc] initWithURL:url];
+				req.HTTPMethod = @"GET";
+				if (options) {
+					if (options[@"method"]) req.HTTPMethod = options[@"method"];
+					if (options[@"body"]) req.HTTPBody = options[@"body"];
+					if (options[@"headers"]) {
+						NSDictionary *headers = options[@"headers"];
+						for (NSString *header in headers.allKeys) {
+							[req setValue:headers[header] forHTTPHeaderField:header];
+						}
+					}
+				}
+
+				[[[NSURLSession sharedSession] dataTaskWithRequest:req completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+					NSString *string = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+					dispatch_async(dispatch_get_main_queue(), ^{
+						if (error) {
+							[promise fail:error.localizedDescription];
+						} else if (data && string) {
+							[promise success:string];
+						} else {
+							[promise fail:[link stringByAppendingString:@" is empty"]];
+						}
+					});
+				}] resume];
+			} else {
+				dispatch_async(dispatch_get_main_queue(), ^{
+					[promise fail:[link stringByAppendingString:@" is not url"]];
+				});
+			}
+		}];
+
+		return promise;
+	};
 }

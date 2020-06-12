@@ -10,6 +10,7 @@
 void initContextIfNeeded() {
 	if (!ctx) {
 		ctx = [[JSContext alloc] initWithVirtualMachine:[[JSVirtualMachine alloc] init]];
+		[ctx evaluateScript:@"Error.prototype.isError = () => {return true}"];
 		setupLogger(YES);
 		setupContext();
 		setupHardActions();
