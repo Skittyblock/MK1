@@ -4,7 +4,7 @@ Depends: mobilesubstrate, firmware (>= 13.0), com.rpetrich.rocketbootstrap (>= 1
 Conflicts: com.castyte.mk1
 Provides: com.castyte.mk1
 Replaces: com.castyte.mk1
-Version: 0.1
+Version: 0.1.1
 Architecture: iphoneos-arm
 Description: Powerful JavaScript automation and scripting tool.
 Maintainer: Skitty

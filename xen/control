@@ -1,6 +1,9 @@
 Package: xyz.skitty.mk1xenhtml
 Name: MK1 XenHTML
 Depends: mobilesubstrate, xyz.skitty.mk1, com.matchstic.xenhtml
+Conflicts: com.castyte.mk1xenhtml
+Provides: com.castyte.mk1xenhtml
+Replaces: com.castyte.mk1xenhtml
 Version: 0.1.1
 Architecture: iphoneos-arm
 Description: Trigger MK1 Scripts from XenHTML

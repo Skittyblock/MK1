@@ -1,6 +1,9 @@
 Package: xyz.skitty.mk1cc
 Name: MK1 CC Toggle
 Depends: xyz.skitty.mk1, com.opa334.ccsupport
+Conflicts: com.castyte.mk1cc
+Provides: com.castyte.mk1cc
+Replaces: com.castyte.mk1cc
 Version: 1.0
 Architecture: iphoneos-arm
 Description: Trigger MK1 Scripts from the Control Center
