@@ -9,6 +9,7 @@
 #import <notify.h>
 #import <signal.h>
 #import <unistd.h>
+#import "XMLHttpRequest.h"
 
 // Setup JSContext functions
 // Main function implementations
@@ -456,6 +457,14 @@ void setupContext() {
 			return ([springBoard activeInterfaceOrientation] == UIInterfaceOrientationLandscapeRight || [springBoard activeInterfaceOrientation] == UIInterfaceOrientationLandscapeLeft);
 		},
 
+		@"isLocked": ^{
+			return [userAgent deviceIsLocked];
+		},
+
+		@"isScreenOn": ^{
+			return [userAgent isScreenOn];
+		},
+
 		@"batteryLevel": ^{
 			return [UIDevice currentDevice].batteryLevel;
 		},
@@ -482,14 +491,6 @@ void setupContext() {
 
 		@"respring": ^{
 			[[objc_getClass("FBSystemService") sharedInstance] exitAndRelaunch:YES];
-		},
-
-		@"isLocked": ^{
-			return [userAgent deviceIsLocked];
-		},
-
-		@"screenIsOn": ^{
-			return [userAgent isScreenOn];
 		}
 
 	};
@@ -744,4 +745,6 @@ void setupContext() {
 			@NO,
 			#endif
 	};
+
+	ctx[@"XMLHttpRequest"] = [XMLHttpRequest class];
 }
