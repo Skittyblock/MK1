@@ -9,8 +9,10 @@
 #import <notify.h>
 #import <signal.h>
 #import <unistd.h>
+
+#import "Console.h"
+#import "Promise.h"
 #import "XMLHttpRequest.h"
-#import "JSPromise.h"
 
 // Setup JSContext functions
 // Main function implementations
@@ -618,23 +620,7 @@ void setupContext() {
 	};
 
 	// Console
-	ctx[@"console"] = @{
-		@"log": ^(NSString *txt) {
-			MK1Log(MK1LogInfo, txt);
-		},
-
-		@"error": ^(NSString *txt) {
-			MK1Log(MK1LogError, txt);
-		},
-
-		@"info": ^(NSString *txt) {
-			MK1Log(MK1LogInfo, txt);
-		},
-
-		@"warn": ^(NSString *txt) {
-			MK1Log(MK1LogWarn, txt);
-		}
-	};
+	ctx[@"console"] = [[Console alloc] init];
 
 	// File management
 	ctx[@"file"] = @{
@@ -749,12 +735,12 @@ void setupContext() {
 
 	ctx[@"XMLHttpRequest"] = [XMLHttpRequest class];
 
-	ctx[@"Promise"] = [JSPromise class];
+	ctx[@"Promise"] = [Promise class];
 
 	// JavaScript fetch(url, options) which returns a Promise.
 	// Supports method, body, and headers for options. TODO: implement more
 	ctx[@"fetch"] = ^(NSString *link, NSDictionary *options) {
-		JSPromise *promise = [[JSPromise alloc] init];
+		Promise *promise = [[Promise alloc] init];
 
 		promise.timer = [NSTimer scheduledTimerWithTimeInterval:1 repeats:NO block:^(NSTimer *timer) {
 			[timer invalidate];

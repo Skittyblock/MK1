@@ -3,7 +3,7 @@
 #import "Tweak.h"
 
 enum MK1LogType {
-    MK1LogInfo, MK1LogWarn, MK1LogDebug, MK1LogError
+    MK1LogGeneral, MK1LogInfo, MK1LogWarn, MK1LogError, MK1LogDebug
 };
 
 void initContextIfNeeded();

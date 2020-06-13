@@ -1,13 +1,13 @@
-// JSPromise.m
+// Promise.m
 
-#import "JSPromise.h"
+#import "Promise.h"
 #import "Util.h"
 
-@implementation JSPromise
+@implementation Promise
 
 - (instancetype)then:(JSValue *)resolve {
 	self.resolve = resolve;
-	self.next = [[JSPromise alloc] init];
+	self.next = [[Promise alloc] init];
 
 	if (self.timer) _timer.fireDate = [NSDate dateWithTimeInterval:1 sinceDate:[NSDate date]];
 	self.next.timer = self.timer;
@@ -18,7 +18,7 @@
 
 - (instancetype)catch:(JSValue *)reject {
 	self.reject = reject;
-	self.next = [[JSPromise alloc] init];
+	self.next = [[Promise alloc] init];
 
 	if (self.timer) _timer.fireDate = [NSDate dateWithTimeInterval:1 sinceDate:[NSDate date]];
 	self.next.timer = self.timer;

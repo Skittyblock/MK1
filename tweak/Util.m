@@ -120,20 +120,22 @@ NSString *toStringCheckNull(JSValue *val) {
 void MK1Log(enum MK1LogType type, NSString *str) {
 	NSString *txt;
 	NSString *name = ctx ? [ctx[@"SCRIPT_NAME"] toString] : @"MK1";
-	if (type == MK1LogDebug) {
-		txt = [NSString stringWithFormat:@"[DEBUG] [%@] %@", name, str];
-		#ifdef DEBUG
-		NSLog(@"%@", txt);
-		#endif
+	if (type == MK1LogGeneral) {
+		txt = [NSString stringWithFormat:@"[%@] %@", name, str];
 	} else if (type == MK1LogInfo) {
 		txt = [NSString stringWithFormat:@"[INFO] [%@] %@", name, str];
-	} else if (type == MK1LogError) {
-		txt = [NSString stringWithFormat:@"[ERROR] [%@] %@", name, str];
-		#ifdef DEBUG
-		NSLog(@"%@", txt);
-		#endif
 	} else if (type == MK1LogWarn) {
 		txt = [NSString stringWithFormat:@"[WARN] [%@] %@", name, str];
+	} else if (type == MK1LogError) {
+		txt = [NSString stringWithFormat:@"[ERROR] [%@] %@", name, str];
+#ifdef DEBUG
+		NSLog(@"%@", txt);
+#endif
+	} if (type == MK1LogDebug) {
+		txt = [NSString stringWithFormat:@"[DEBUG] [%@] %@", name, str];
+#ifdef DEBUG
+		NSLog(@"%@", txt);
+#endif
 	}
 
 	NSError *readError;
