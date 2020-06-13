@@ -11,6 +11,7 @@
 #import <unistd.h>
 
 #import "Console.h"
+#import "FileSystem.h"
 #import "Promise.h"
 #import "XMLHttpRequest.h"
 
@@ -623,6 +624,8 @@ void setupContext() {
 	ctx[@"console"] = [[Console alloc] init];
 
 	// File management
+	ctx[@"fs"] = [[FileSystem alloc] init];
+	
 	ctx[@"file"] = @{
 		@"read": ^(NSString *path) {
 			NSError *error;
