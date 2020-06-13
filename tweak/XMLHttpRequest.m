@@ -17,8 +17,8 @@
 @synthesize readyState;
 @synthesize status;
 
-- (void)open:(NSString*)httpMethod :(NSString*)url :(bool)async; {
-	MK1Log(MK1LogInfo, [NSString stringWithFormat:@"[HTTP] open(%@)", httpMethod]);
+// open(method, url, async)
+- (void)open:(NSString *)httpMethod :(NSString *)url :(bool)async; {
 	_method = httpMethod;
 	_url = url;
 	_async = async;
@@ -67,7 +67,10 @@
 
 	NSMutableURLRequest *req = [[NSMutableURLRequest alloc] initWithURL:[NSURL URLWithString:_url]];
 	req.HTTPMethod = _method;
-    req.HTTPBody = body;
+
+	NSData *data = [body dataUsingEncoding:NSUTF8StringEncoding];
+    req.HTTPBody = data;
+
 	for (NSString *items in _headers.allKeys) {
 		[req setValue:_headers[items] forHTTPHeaderField:items];
 	}

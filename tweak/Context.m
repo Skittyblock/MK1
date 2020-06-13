@@ -765,7 +765,7 @@ void setupContext() {
 				req.HTTPMethod = @"GET";
 				if (options) {
 					if (options[@"method"]) req.HTTPMethod = options[@"method"];
-					if (options[@"body"]) req.HTTPBody = options[@"body"];
+					if (options[@"body"]) req.HTTPBody = [options[@"body"] dataUsingEncoding:NSUTF8StringEncoding];
 					if (options[@"headers"]) {
 						NSDictionary *headers = options[@"headers"];
 						for (NSString *header in headers.allKeys) {
