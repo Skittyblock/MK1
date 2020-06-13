@@ -7,22 +7,24 @@
 #import "XENHWidgetController.h"
 
 static CPDistributedMessagingCenter *messagingCenter = nil;
-static NSArray<NSString *> *scripts;
 
 static JSValue *(*runScriptWithName)(NSString *);
 static void (*activateTrigger)(NSString *);
+static JSValue *(*evaluateCode)(NSString *);
 
-// Expose mk1Message()
+// Expose mk1Message() and mk1Evaluate()
 %hook XENHWidgetController
 
 - (void)_loadWebView {
 	%orig;
 
-	WKUserScript *mk1Message = [[WKUserScript alloc] initWithSource:@"function mk1Message(name, body) { window.webkit.messageHandlers[name].postMessage(body); }" injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES];
+	NSArray<NSString *> *actions = @[@"runScript", @"activateTrigger", @"evaluateCode"];
+
+	WKUserScript *mk1Message = [[WKUserScript alloc] initWithSource:@"function mk1Message(name, body) { window.webkit.messageHandlers[name].postMessage(body); } function mk1Evaluate(code) { window.webkit.messageHandlers.evaluateCode.postMessage(code); }" injectionTime:WKUserScriptInjectionTimeAtDocumentStart forMainFrameOnly:YES];
 	[self.webView.configuration.userContentController addUserScript:mk1Message];
 
-	for (NSString *scriptName in scripts) {
-		[self.webView.configuration.userContentController addScriptMessageHandler:self name:scriptName];
+	for (NSString *name in actions) {
+		[self.webView.configuration.userContentController addScriptMessageHandler:self name:name];
 	}
 }
 
@@ -34,8 +36,11 @@ static void (*activateTrigger)(NSString *);
 		JSValue *val = runScriptWithName(message.body);
 		ret = [val toString];
 	} else if ([message.name isEqualToString:@"activateTrigger"]) {
-		JSValue *val = activateTrigger(message.body);
-		ret = "null";
+		activateTrigger(message.body);
+		ret = @"null";
+	} else if ([message.name isEqualToString:@"evaluateCode"]) {
+		JSValue *val = evaluateCode(message.body);
+		ret = [val toString];
 	}
 
 	[self.webView evaluateJavaScript:[NSString stringWithFormat:@"mk1Callback({message: {name: '%@', body: '%@'}, return: %@});", message.name, message.body, ret] completionHandler:nil];
@@ -101,10 +106,10 @@ static void (*activateTrigger)(NSString *);
 	void *handle = dlopen("/Library/MobileSubstrate/DynamicLibraries/MK1.dylib", RTLD_LAZY);
 	runScriptWithName = dlsym(handle, "runScriptWithName");
 	activateTrigger = dlsym(handle, "activateTrigger");
+	evaluateCode = dlsym(handle, "evaluateCode");
 	
 	messagingCenter = [CPDistributedMessagingCenter centerNamed:@"xyz.skitty.mk1"];
 	rocketbootstrap_distributedmessagingcenter_apply(messagingCenter);
-	scripts = @[@"runScript", @"activateTrigger"];
 
 	%init;
 	if ([%c(XENHWidgetController) instancesRespondToSelector:@selector(webView:decidePolicyForNavigationAction:decisionHandler:)]) {

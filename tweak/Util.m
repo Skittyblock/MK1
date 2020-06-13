@@ -71,6 +71,12 @@ JSValue *runScriptWithName(NSString *name) {
 	//});
 }
 
+// Evaluate code in string
+JSValue *evaluateCode(NSString *code) {
+	initContextIfNeeded();
+	return [ctx evaluateScript:code];
+}
+
 // Run all scripts for a trigger
 void activateTrigger(NSString *trigger) {
 	for (NSString *s in scripts[trigger]) {

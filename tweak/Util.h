@@ -11,6 +11,7 @@ void setupHardActions();
 void setupLogger(BOOL alertOnError);
 
 JSValue *runScriptWithName(NSString *name);
+JSValue *evaluateCode(NSString *code);
 void activateTrigger(NSString *trigger);
 BOOL triggerHasScripts(NSString *trigger);
 
