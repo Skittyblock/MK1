@@ -5,6 +5,8 @@
 #import "Util.h"
 #import <AVFoundation/AVFoundation.h>
 #import <rocketbootstrap/rocketbootstrap.h>
+#import "../Headers/AppSupport/AppSupport.h"
+#import "../Headers/Preferences/PSCellularDataSettingsDetail.h"
 #import <objc/runtime.h>
 #import <notify.h>
 #import <signal.h>
@@ -13,6 +15,7 @@
 #import "Console.h"
 #import "FileSystem.h"
 #import "Promise.h"
+#import "Response.h"
 #import "XMLHttpRequest.h"
 
 // Setup JSContext functions
@@ -53,8 +56,8 @@ void setupContext() {
 
 	// Reachability
 	ctx[@"toggleReachability"] = ^{
-		[[objc_getClass("SBReachabilityManager") sharedInstance] setReachabilityEnabled:YES];
-		[[objc_getClass("SBReachabilityManager") sharedInstance] toggleReachability];
+		[[NSClassFromString(@"SBReachabilityManager") sharedInstance] setReachabilityEnabled:YES];
+		[[NSClassFromString(@"SBReachabilityManager") sharedInstance] toggleReachability];
 	};
 
 	// Shell
@@ -100,15 +103,15 @@ void setupContext() {
 	// TODO: don't use keyWindow
 	ctx[@"systemUI"] = @{
 		@"isControlCenterShowing": ^{
-			return [[[UIApplication sharedApplication] keyWindow] isKindOfClass:objc_getClass("SBControlCenterWindow")];
+			return [[[UIApplication sharedApplication] keyWindow] isKindOfClass:NSClassFromString(@"SBControlCenterWindow")];
 		},
 
 		@"isHomeScreenShowing": ^{
-			return [[[UIApplication sharedApplication] keyWindow] isKindOfClass:objc_getClass("SBHomeScreenWindow")];
+			return [[[UIApplication sharedApplication] keyWindow] isKindOfClass:NSClassFromString(@"SBHomeScreenWindow")];
 		},
 
 		@"isCoverSheetShowing": ^{
-			return [[[UIApplication sharedApplication] keyWindow] isKindOfClass:objc_getClass("SBCoverSheetWindow")];
+			return [[[UIApplication sharedApplication] keyWindow] isKindOfClass:NSClassFromString(@"SBCoverSheetWindow")];
 		}
 	};
 
@@ -119,18 +122,18 @@ void setupContext() {
 		},
 
 		@"setLevel": ^(float level) {
-			[[objc_getClass("SBBrightnessController") sharedBrightnessController] setBrightnessLevel:level];
+			[[NSClassFromString(@"SBBrightnessController") sharedBrightnessController] setBrightnessLevel:level];
 		}
 	};
 
 	// Cellular
 	ctx[@"cellularData"] = @{
 		@"isEnabled": ^{
-			return [objc_getClass("PSCellularDataSettingsDetail") isEnabled];
+			return [NSClassFromString(@"PSCellularDataSettingsDetail") isEnabled];
 		},
 
 		@"setEnabled": ^(BOOL enabled) {
-			[objc_getClass("PSCellularDataSettingsDetail") setEnabled:enabled];
+			[NSClassFromString(@"PSCellularDataSettingsDetail") setEnabled:enabled];
 		}
 	};
 
@@ -138,22 +141,22 @@ void setupContext() {
 	ctx[@"volume"] = @{
 		@"getRinger": ^{
 			float vol;
-			[[objc_getClass("AVSystemController") sharedAVSystemController] getVolume:&vol forCategory:@"Ringtone"];
+			[[NSClassFromString(@"AVSystemController") sharedAVSystemController] getVolume:&vol forCategory:@"Ringtone"];
 			return vol;
 		},
 
 		@"setRinger": ^(float vol) {
-			[[objc_getClass("AVSystemController") sharedAVSystemController] setVolumeTo:vol forCategory:@"Ringtone"];
+			[[NSClassFromString(@"AVSystemController") sharedAVSystemController] setVolumeTo:vol forCategory:@"Ringtone"];
 		},
 
 		@"getMedia": ^{
 			float vol;
-			[[objc_getClass("AVSystemController") sharedAVSystemController] getVolume:&vol forCategory:@"Audio/Video"];
+			[[NSClassFromString(@"AVSystemController") sharedAVSystemController] getVolume:&vol forCategory:@"Audio/Video"];
 			return vol;
 		},
 
 		@"setMedia": ^(float vol) {
-			[[objc_getClass("AVSystemController") sharedAVSystemController] setVolumeTo:vol forCategory:@"Audio/Video"];
+			[[NSClassFromString(@"AVSystemController") sharedAVSystemController] setVolumeTo:vol forCategory:@"Audio/Video"];
 		}
 	};
 	
@@ -249,16 +252,16 @@ void setupContext() {
 	// Bluetooth
 	ctx[@"bluetooth"] = @{
 		@"isEnabled": ^{
-			return [[objc_getClass("BluetoothManager") sharedInstance] enabled];
+			return [[NSClassFromString(@"BluetoothManager") sharedInstance] enabled];
 		},
 
 		@"setEnabled": ^(BOOL enabled) {
-			[[objc_getClass("BluetoothManager") sharedInstance] setEnabled:enabled];
+			[(BluetoothManager *)[NSClassFromString(@"BluetoothManager") sharedInstance] setEnabled:enabled];
 		},
 
 		@"connectedDevices": ^{
 			NSMutableArray *ret = [NSMutableArray array];
-			NSArray *devices = [[objc_getClass("BluetoothManager") sharedInstance] connectedDevices];
+			NSArray *devices = [[NSClassFromString(@"BluetoothManager") sharedInstance] connectedDevices];
 			for (BluetoothDevice *device in devices) {
 				bluetoothDevices[[device scoUID]] = device;
 				[ret addObject:[device scoUID]];
@@ -268,7 +271,7 @@ void setupContext() {
 
 		@"pairedDevices": ^{
 			NSMutableArray *ret = [NSMutableArray array];
-			NSArray *devices = [[objc_getClass("BluetoothManager") sharedInstance] pairedDevices];
+			NSArray *devices = [[NSClassFromString(@"BluetoothManager") sharedInstance] pairedDevices];
 			for (BluetoothDevice *device in devices) {
 				bluetoothDevices[[device scoUID]] = device;
 				[ret addObject:[device scoUID]];
@@ -280,12 +283,12 @@ void setupContext() {
 	ctx[@"bluetoothDevice"] = @{
 		@"name": ^(NSString *dID) {
 			if (bluetoothDevices[dID]) return [bluetoothDevices[dID] name];
-			else return (id)nil;
+			else return @"";
 		},
 
 		@"address": ^(NSString *dID) {
 			if (bluetoothDevices[dID]) return [(BluetoothDevice *)bluetoothDevices[dID] address];
-			else return (id)nil;
+			else return @"";
 		},
 
 		@"connected": ^(NSString *dID) {
@@ -478,11 +481,11 @@ void setupContext() {
 		},
 
 		@"shutdown": ^{
-			[[objc_getClass("FBSystemService") sharedInstance] shutdownWithOptions:0];
+			[[NSClassFromString(@"FBSystemService") sharedInstance] shutdownWithOptions:0];
 		},
 
 		@"reboot": ^{
-			[[objc_getClass("FBSystemService") sharedInstance] shutdownAndReboot:1];
+			[[NSClassFromString(@"FBSystemService") sharedInstance] shutdownAndReboot:1];
 		},
 
 		@"safemode": ^{
@@ -494,7 +497,7 @@ void setupContext() {
 		},
 
 		@"respring": ^{
-			[[objc_getClass("FBSystemService") sharedInstance] exitAndRelaunch:YES];
+			[[NSClassFromString(@"FBSystemService") sharedInstance] exitAndRelaunch:YES];
 		}
 
 	};
@@ -575,22 +578,22 @@ void setupContext() {
 	// Low power mode
 	ctx[@"lpm"] = @{
 		@"setEnabled": ^(bool enabled) {
-			[[objc_getClass("_CDBatterySaver") sharedInstance] setMode:enabled];
+			[[NSClassFromString(@"_CDBatterySaver") sharedInstance] setMode:enabled];
 		},
 
 		@"isEnabled": ^{
-			return [[objc_getClass("_CDBatterySaver") sharedInstance] getPowerMode];
+			return [[NSClassFromString(@"_CDBatterySaver") sharedInstance] getPowerMode];
 		}
 	};
 
 	// Airplane mode
 	ctx[@"airplaneMode"] = @{
 		@"isEnabled": ^{
-			return [[[objc_getClass("RadiosPreferences") alloc] init] airplaneMode];
+			return [[[NSClassFromString(@"RadiosPreferences") alloc] init] airplaneMode];
 		},
 
 		@"setEnabled": ^(BOOL enabled) {
-			[[[objc_getClass("RadiosPreferences") alloc] init] setAirplaneMode:enabled];
+			[[[NSClassFromString(@"RadiosPreferences") alloc] init] setAirplaneMode:enabled];
 		}
 	};
 
@@ -598,25 +601,25 @@ void setupContext() {
 	ctx[@"orientationLock"] = @{
 		@"setEnabled": ^(BOOL enabled) {
 			if (enabled) {
-				[[objc_getClass("SBOrientationLockManager") sharedInstance] lock];
+				[[NSClassFromString(@"SBOrientationLockManager") sharedInstance] lock];
 			} else {
-				[[objc_getClass("SBOrientationLockManager") sharedInstance] unlock];
+				[[NSClassFromString(@"SBOrientationLockManager") sharedInstance] unlock];
 			}
 		},
 
 		@"isEnabled": ^{
-			return [[objc_getClass("SBOrientationLockManager") sharedInstance] isUserLocked];
+			return [[NSClassFromString(@"SBOrientationLockManager") sharedInstance] isUserLocked];
 		}
 	};
 
 	// Dark mode
 	ctx[@"systemStyle"] = @{
 		@"toggle": ^{
-			[[objc_getClass("UIUserInterfaceStyleArbiter") sharedInstance] toggleCurrentStyle];
+			[[NSClassFromString(@"UIUserInterfaceStyleArbiter") sharedInstance] toggleCurrentStyle];
 		},
 
 		@"isDark": ^{
-			return (bool)([[objc_getClass("UIUserInterfaceStyleArbiter") sharedInstance] currentStyle]-1);
+			return (bool)([[NSClassFromString(@"UIUserInterfaceStyleArbiter") sharedInstance] currentStyle]-1);
 		}
 	};
 
@@ -677,7 +680,7 @@ void setupContext() {
 
 	// Screenshot
 	ctx[@"takeScreenshot"] = ^{
-		[[objc_getClass("SBCombinationHardwareButtonActions") alloc] performTakeScreenshotAction];
+		[[NSClassFromString(@"SBCombinationHardwareButtonActions") alloc] performTakeScreenshotAction];
 	};
 
 	// Darwin notifications
@@ -738,49 +741,47 @@ void setupContext() {
 
 	ctx[@"XMLHttpRequest"] = [XMLHttpRequest class];
 
-	ctx[@"Promise"] = [Promise class];
+    ctx[@"Promise"] = (id) ^(JSValue *executor) { 
+		return [[Promise alloc] initWithExecutor:executor];
+	};
 
 	// JavaScript fetch(url, options) which returns a Promise.
 	// Supports method, body, and headers for options. TODO: implement more
-	ctx[@"fetch"] = ^(NSString *link, NSDictionary *options) {
+	ctx[@"fetch"] = ^(NSString *link, NSDictionary * _Nullable options) {
 		Promise *promise = [[Promise alloc] init];
 
-		promise.timer = [NSTimer scheduledTimerWithTimeInterval:1 repeats:NO block:^(NSTimer *timer) {
-			[timer invalidate];
-
-			NSURL *url = [NSURL URLWithString:link];
-			if (url) {
-				NSMutableURLRequest *req = [[NSMutableURLRequest alloc] initWithURL:url];
-				req.HTTPMethod = @"GET";
-				if (options) {
-					if (options[@"method"]) req.HTTPMethod = options[@"method"];
-					if (options[@"body"]) req.HTTPBody = [options[@"body"] dataUsingEncoding:NSUTF8StringEncoding];
-					if (options[@"headers"]) {
-						NSDictionary *headers = options[@"headers"];
-						for (NSString *header in headers.allKeys) {
-							[req setValue:headers[header] forHTTPHeaderField:header];
-						}
+		NSURL *url = [NSURL URLWithString:link];
+		if (url) {
+			NSMutableURLRequest *req = [[NSMutableURLRequest alloc] initWithURL:url];
+			req.HTTPMethod = @"GET";
+			if (options) {
+				if (options[@"method"]) req.HTTPMethod = options[@"method"];
+				if (options[@"body"]) req.HTTPBody = [options[@"body"] dataUsingEncoding:NSUTF8StringEncoding];
+				if (options[@"headers"]) {
+					NSDictionary *headers = options[@"headers"];
+					for (NSString *header in headers.allKeys) {
+						[req setValue:headers[header] forHTTPHeaderField:header];
 					}
 				}
-
-				[[[NSURLSession sharedSession] dataTaskWithRequest:req completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-					NSString *string = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
-					dispatch_async(dispatch_get_main_queue(), ^{
-						if (error) {
-							[promise fail:error.localizedDescription];
-						} else if (data && string) {
-							[promise success:string];
-						} else {
-							[promise fail:[link stringByAppendingString:@" is empty"]];
-						}
-					});
-				}] resume];
-			} else {
-				dispatch_async(dispatch_get_main_queue(), ^{
-					[promise fail:[link stringByAppendingString:@" is not url"]];
-				});
 			}
-		}];
+
+			[[[NSURLSession sharedSession] dataTaskWithRequest:req completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
+				dispatch_async(dispatch_get_main_queue(), ^{
+					if (error) {
+						[promise fail:error.localizedDescription];
+					} else if (data) {
+						Response *res = [[Response alloc] initWithData:data];
+						[promise resolve:[JSValue valueWithObject:res inContext:ctx]];
+					} else {
+						[promise fail:[link stringByAppendingString:@" is empty"]];
+					}
+				});
+			}] resume];
+		} else {
+			dispatch_async(dispatch_get_main_queue(), ^{
+				[promise fail:[link stringByAppendingString:@" is not url"]];
+			});
+		}
 
 		return promise;
 	};

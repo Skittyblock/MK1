@@ -53,7 +53,7 @@
 - (void)readFile:(NSString *)filename :(void (^)(NSError *, NSString *))callback {
 	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
 		NSError *error;
-		NSString *data = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:&error];
+		NSString *data = [NSString stringWithContentsOfFile:filename encoding:NSUTF8StringEncoding error:&error];
 		dispatch_async(dispatch_get_main_queue(), ^(void){
 			callback(error, data);
 		});
@@ -61,7 +61,7 @@
 }
 
 - (NSString *)readFileSync:(NSString *)filename {
-	return [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil];
+	return [NSString stringWithContentsOfFile:filename encoding:NSUTF8StringEncoding error:nil];
 }
 
 @end

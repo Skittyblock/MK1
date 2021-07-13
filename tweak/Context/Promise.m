@@ -1,60 +1,120 @@
 // Promise.m
 
 #import "Promise.h"
+#import "Tweak.h"
 #import "Util.h"
 
 @implementation Promise
 
+- (instancetype)init {
+	self = [super init];
+	if (self) {
+        self.resultObservers = [NSMutableArray new];
+        self.errorObservers = [NSMutableArray new];
+		self.resolved = NO;
+	}
+	return self;
+}
+
+- (instancetype)initWithExecutor:(JSValue *)executor {
+	self = [super init];
+	if (self) {
+		self.executor = executor;
+        self.resultObservers = [NSMutableArray new];
+        self.errorObservers = [NSMutableArray new];
+		self.resolved = NO;
+		[self execute];
+	}
+	return self;
+}
+
 - (instancetype)then:(JSValue *)resolve {
-	self.resolve = resolve;
-	self.next = [[Promise alloc] init];
+	if (!resolve) return self;
 
-	if (self.timer) _timer.fireDate = [NSDate dateWithTimeInterval:1 sinceDate:[NSDate date]];
-	self.next.timer = self.timer;
-	self.timer = nil;
-
-	return _next;
+	self.returnPromise = [[Promise alloc] init];
+	[self.resultObservers addObject:resolve];
+    [self update];
+    return self.returnPromise;
 }
 
 - (instancetype)catch:(JSValue *)reject {
-	self.reject = reject;
-	self.next = [[Promise alloc] init];
+	if (!reject) return self;
 
-	if (self.timer) _timer.fireDate = [NSDate dateWithTimeInterval:1 sinceDate:[NSDate date]];
-	self.next.timer = self.timer;
-	self.timer = nil;
-
-	return self.next;
+	self.returnPromise = [[Promise alloc] init];
+	[self.errorObservers addObject:reject];
+    [self update];
+    return self.returnPromise;
 }
 
-- (void)fail:(NSString *)error {
-	if (self.reject) {
-		[self.reject callWithArguments:@[error]];
-	} else if (self.next) {
-		[self.next fail:error];
-	}
-}
+- (void)resolve:(JSValue *)value {
+	if (!value) return;
 
-- (void)success:(id)value {
-	if (!self.resolve) return;
-	JSValue *result;
-	if (value) {
-		result = [self.resolve callWithArguments:@[value]];
-	} else {
-		result = [self.resolve callWithArguments:@[]];
-	}
-
-	if (!self.next) return;
-	if (result) {
-		if (result.isUndefined) {
-			[self.next success:nil];
-			return;
-		} else if ([result hasProperty:@"isError"]) {
-			[self.next fail:[result toString]];
+	if ([[value toObject] isKindOfClass:Promise.class]) {
+		Promise *promise = (Promise *)[value toObject];
+		if (promise.resolved) value = promise.result;
+		else {
+			// TODO: support this
 		}
 	}
 
-	[self.next success:value];
+	self.result = value;
+    self.resolved = YES;
+    [self update];
+}
+
+- (void)reject:(JSValue *)value {
+	if (!value) return;
+
+	if ([[value toObject] isKindOfClass:Promise.class]) {
+		Promise *promise = (Promise *)[value toObject];
+		if (promise.error) self.error = promise.error;
+	} else {
+		self.error = value;
+	}
+    [self update];
+}
+
+- (void)fail:(NSString *)errorString {
+	self.error = [JSValue valueWithNewErrorFromMessage:errorString inContext:ctx];
+	[self update];
+}
+
+- (void)execute {
+	@try {
+		[self.executor callWithArguments:@[
+			^(JSValue *result) {
+				[self resolve:result];
+			},
+			^(JSValue *error) {
+				[self reject:error];
+			}
+		]];
+	} @catch (NSException *exception) {
+		[self fail:exception.reason];
+	}
+}
+
+- (void)update {
+	if (self.resolved && self.result) {
+        for (JSValue *resolution in self.resultObservers) {
+			JSValue *retVal = [resolution callWithArguments:@[self.result]];
+			if (retVal && self.returnPromise) [self.returnPromise resolve:retVal];
+        }
+        [self.resultObservers removeAllObjects];
+    } else if (self.error != nil) {
+
+		if (self.returnPromise) {
+			self.returnPromise.error = self.error;
+			[self.returnPromise update];
+		} else if (self.errorObservers.count == 0) {
+			// alertError(@"Unhandled Promise rejection");
+		}
+
+        for (JSValue *rejection in self.errorObservers) {
+			[rejection callWithArguments:@[self.error]];
+        }
+        [self.errorObservers removeAllObjects];
+	}
 }
 
 @end

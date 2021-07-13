@@ -3,7 +3,8 @@
 
 #include <stdio.h>
 #include <string.h>
-#import <AppSupport/CPDistributedMessagingCenter.h>
+#import <Foundation/Foundation.h>
+#import "../Headers/AppSupport/CPDistributedMessagingCenter.h"
 #import <rocketbootstrap/rocketbootstrap.h>
 
 int main(int argc, char *argv[], char *envp[]) {

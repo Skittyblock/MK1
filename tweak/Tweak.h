@@ -1,9 +1,10 @@
 // Tweak.h
 
+#import <UIKit/UIKit.h>
 #import <JavaScriptCore/JavaScriptCore.h>
 #import <MediaRemote/MediaRemote.h>
 
-#import <AppSupport/AppSupport.h>
+// #import "Headers/AppSupport/AppSupport.h"
 #import <AVFoundation/AVFoundation+Private.h>
 #import <BluetoothManager/BluetoothManager.h>
 #import <Celestial/Celestial.h>
