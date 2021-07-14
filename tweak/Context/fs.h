@@ -1,9 +1,9 @@
-// FileSystem.h
+// fs.h
 
 #import <Foundation/Foundation.h>
 #import <JavaScriptCore/JavaScriptCore.h>
 
-@protocol FileSystemExports <JSExport>
+@protocol FSExports <JSExport>
 
 - (void)rename:(NSString *)oldPath :(NSString *)newPath :(void (^)(NSError *))callback;
 - (void)renameSync:(NSString *)oldPath :(NSString *)newPath;
@@ -16,6 +16,6 @@
 
 @end
 
-@interface FileSystem : NSObject <FileSystemExports>
+@interface MKFSModule : NSObject <FSExports>
 
 @end

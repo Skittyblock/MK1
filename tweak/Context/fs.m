@@ -1,8 +1,8 @@
-// FileSystem.m
+// fs.m
 
-#import "FileSystem.h"
+#import "fs.h"
 
-@implementation FileSystem
+@implementation MKFSModule
 
 // Rename files/directories
 - (void)rename:(NSString *)oldPath :(NSString *)newPath :(void (^)(NSError *))callback {

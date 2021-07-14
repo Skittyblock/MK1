@@ -24,62 +24,12 @@
 #import <signal.h>
 #import <unistd.h>
 
-#import "Console.h"
-#import "FileSystem.h"
-#import "Promise.h"
-#import "Response.h"
-#import "XMLHttpRequest.h"
-
 // Setup JSContext functions
 // Main function implementations
 // TODO: This is disgusting and needs to be cleaned up asap
 void setupContext(JSContext *ctx) {
-	NSMutableDictionary <NSString *, NSTimer *> *timeouts = [[NSMutableDictionary alloc] init];
-	NSMutableDictionary <NSString *, NSTimer *> *intervals = [[NSMutableDictionary alloc] init];
 	NSMutableDictionary *bluetoothDevices = [[NSMutableDictionary alloc] init];
 	NSMutableDictionary <NSString *, MTAlarm *> *alarms = [[NSMutableDictionary alloc] init];
-
-	__weak JSContext *weakCtx = ctx;
-
-	ctx[@"global"] = ctx.globalObject;
-
-	ctx[@"require"] = ^(NSString *moduleName) {
-		// Only supports local files for now
-    	if (![moduleName hasPrefix:@"./"] && ![moduleName hasPrefix:@"/"]) return [JSValue valueWithUndefinedInContext:weakCtx];
-    	if (![moduleName hasSuffix:@".js"]) moduleName = [moduleName stringByAppendingString:@".js"];
-
-		NSString *modulePath = moduleName;
-
-		if ([modulePath hasPrefix:@"./"]) {
-			NSString *scriptDirectory = [NSString stringWithFormat:@"/Library/MK1/Scripts/%@/", weakCtx[@"SCRIPT_NAME"]];
-			modulePath = [scriptDirectory stringByAppendingPathComponent:[modulePath substringFromIndex:2]];
-		}
-
-		NSString *moduleCode = [NSString stringWithContentsOfFile:modulePath encoding:NSUTF8StringEncoding error:nil];
-		NSString *injectedModuleCode = [NSString stringWithFormat:@"(function(){var module = {exports: {}};(function(module, exports) {%@;})(module, module.exports);return module.exports;})();", moduleCode];
-
-		return [weakCtx evaluateScript:injectedModuleCode];
-	};
-
-	// Alert
-	/* TODO: alerts should use a window placed above everything else instead of getting the key window
-			 should be some control on global state, as currenly if a script assigns a constant another script will have an error reassigning to it
-			 this could be fixed by having a 'MK1.<SCRIPTNAME<.exports' to export variables for use in other scripts, and all other variable being kept inside the script
-	
-	 		 the context should've ideally used JSExport to sort the different categories into classes, but i did not know JSExport existed when starting this */
-	ctx[@"alert"] = ^(JSValue *jtitle, JSValue *jmsg) {
-		NSString *title = toStringCheckNull(jtitle);
-		NSString *msg = toStringCheckNull(jmsg);
-
-		UIViewController *vc = [[UIApplication sharedApplication] keyWindow].rootViewController;
-		
-		UIAlertController* alert = [UIAlertController alertControllerWithTitle:title message:msg preferredStyle:UIAlertControllerStyleAlert];
- 
-		UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"Ok" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {}];
-		
-		[alert addAction:okAction];
-		[vc presentViewController:alert animated:YES completion:nil];
-	};
 
 	// RocketBootstrap
 	ctx[@"sendRocketBootstrapMessage"] = ^(NSString *center, NSString *message, NSDictionary *userInfo) {
@@ -364,30 +314,6 @@ void setupContext(JSContext *ctx) {
 		},
 	};
 
-	// Confirm alerts
-	ctx[@"confirm"] = ^(JSValue *jtitle, JSValue *jmsg, JSValue *cb) {
-		NSString *title = toStringCheckNull(jtitle);
-		NSString *msg = toStringCheckNull(jmsg);
-
-		UIViewController *vc = [[UIApplication sharedApplication] keyWindow].rootViewController;
-		UIAlertController* alert = [UIAlertController alertControllerWithTitle:title message:msg preferredStyle:UIAlertControllerStyleAlert];
- 
-		UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault
-		handler:^(UIAlertAction * action) {
-			[cb callWithArguments:@[@YES]];
-		}];
-
-		UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel
-		handler:^(UIAlertAction * action) {
-			[cb callWithArguments:@[@NO]];
-		}];
-
-		[alert addAction:cancelAction];
-		[alert addAction:okAction];
-		alert.preferredAction = okAction;
-		[vc presentViewController:alert animated:YES completion:nil];
-	};
-
 	// Alert menu
 	ctx[@"menu"] = ^(JSValue *jtitle, JSValue *jmsg, NSArray<NSString *> *options, JSValue *cb) {
 		NSString *title = toStringCheckNull(jtitle);
@@ -404,32 +330,6 @@ void setupContext(JSContext *ctx) {
 			[alert addAction:action];
 		}];
 
-		[vc presentViewController:alert animated:YES completion:nil];
-	};
-
-	// Prompt alert
-	ctx[@"prompt"] = ^(JSValue *jtitle, JSValue *jmsg, JSValue *cb) {
-		NSString *title = toStringCheckNull(jtitle);
-		NSString *msg = toStringCheckNull(jmsg);
-
-		UIViewController *vc = [[UIApplication sharedApplication] keyWindow].rootViewController;
-		UIAlertController* alert = [UIAlertController alertControllerWithTitle:title message:msg preferredStyle:UIAlertControllerStyleAlert];
- 
-		UIAlertAction* okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault
-		handler:^(UIAlertAction *action) {
-			NSString *text = [alert textFields][0].text;
-			[cb callWithArguments:@[text]];
-		}];
-
-		UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel handler:^(UIAlertAction *action) {
-			[cb callWithArguments:@[@NO]];
-		}];
-
-		[alert addTextFieldWithConfigurationHandler:nil];
-
-		[alert addAction:cancelAction];
-		[alert addAction:okAction];
-		alert.preferredAction = okAction;
 		[vc presentViewController:alert animated:YES completion:nil];
 	};
 
@@ -575,41 +475,6 @@ void setupContext(JSContext *ctx) {
 		[syn speakUtterance:utterance];
 	};
 
-	// Timeout functions
-	ctx[@"setTimeout"] = ^(JSValue *cb, double ms) {
-		NSString *_id = [[NSUUID UUID] UUIDString];
-		NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:ms/1000 repeats:NO block:^(NSTimer *timer) {
-			[cb callWithArguments:@[]];
-			timeouts[_id] = NULL;
-		}];
-		timeouts[_id] = timer;
-		return _id;
-	};
-
-	ctx[@"clearTimeout"] = ^(NSString *_id) {
-		if (timeouts[_id]) {
-			[timeouts[_id] invalidate];
-			timeouts[_id] = NULL;
-		}
-	};
-
-	// Interval functions
-	ctx[@"setInterval"] = ^(JSValue *cb, double ms) {
-		NSString *_id = [[NSUUID UUID] UUIDString];
-		NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:ms/1000 repeats:YES block:^(NSTimer *timer) {
-			[cb callWithArguments:@[]];
-		}];
-		intervals[_id] = timer;
-		return _id;
-	};
-
-	ctx[@"clearInterval"] = ^(NSString *_id) {
-		if (intervals[_id]) {
-			[intervals[_id] invalidate];
-			intervals[_id] = NULL;
-		}
-	};
-
 	// Low power mode
 	ctx[@"lpm"] = @{
 		@"setEnabled": ^(bool enabled) {
@@ -657,12 +522,6 @@ void setupContext(JSContext *ctx) {
 			return (bool)([[NSClassFromString(@"UIUserInterfaceStyleArbiter") sharedInstance] currentStyle]-1);
 		}
 	};
-
-	// Console
-	ctx[@"console"] = [[Console alloc] init];
-
-	// File management
-	ctx[@"fs"] = [[FileSystem alloc] init];
 	
 	ctx[@"file"] = @{
 		@"read": ^(NSString *path) {
@@ -742,7 +601,7 @@ void setupContext(JSContext *ctx) {
 		@"copyright": @"Copyright (c) Castyte 2020. All Rights Reserved.\nModified work copyright (c) Skitty 2020.",
 
 		@"setAlertOnError": ^(BOOL set){
-			setupLogger(set);
+			// setupLogger(set);
 		},
 
 		@"runScript": ^(NSString *script, NSString *arg) {
@@ -772,52 +631,5 @@ void setupContext(JSContext *ctx) {
 			#else
 			@NO,
 			#endif
-	};
-
-	ctx[@"XMLHttpRequest"] = [XMLHttpRequest class];
-
-    ctx[@"Promise"] = (id) ^(JSValue *executor) { 
-		return [[Promise alloc] initWithExecutor:executor];
-	};
-
-	// JavaScript fetch(url, options) which returns a Promise.
-	// Supports method, body, and headers for options. TODO: implement more
-	ctx[@"fetch"] = ^(NSString *link, NSDictionary * _Nullable options) {
-		Promise *promise = [[Promise alloc] init];
-
-		NSURL *url = [NSURL URLWithString:link];
-		if (url) {
-			NSMutableURLRequest *req = [[NSMutableURLRequest alloc] initWithURL:url];
-			req.HTTPMethod = @"GET";
-			if (options) {
-				if (options[@"method"]) req.HTTPMethod = options[@"method"];
-				if (options[@"body"]) req.HTTPBody = [options[@"body"] dataUsingEncoding:NSUTF8StringEncoding];
-				if (options[@"headers"]) {
-					NSDictionary *headers = options[@"headers"];
-					for (NSString *header in headers.allKeys) {
-						[req setValue:headers[header] forHTTPHeaderField:header];
-					}
-				}
-			}
-
-			[[[NSURLSession sharedSession] dataTaskWithRequest:req completionHandler:^(NSData *data, NSURLResponse *response, NSError *error) {
-				dispatch_async(dispatch_get_main_queue(), ^{
-					if (error) {
-						[promise fail:error.localizedDescription];
-					} else if (data) {
-						Response *res = [[Response alloc] initWithData:data];
-						[promise resolve:[JSValue valueWithObject:res inContext:weakCtx]];
-					} else {
-						[promise fail:[link stringByAppendingString:@" is empty"]];
-					}
-				});
-			}] resume];
-		} else {
-			dispatch_async(dispatch_get_main_queue(), ^{
-				[promise fail:[link stringByAppendingString:@" is not url"]];
-			});
-		}
-
-		return promise;
 	};
 }

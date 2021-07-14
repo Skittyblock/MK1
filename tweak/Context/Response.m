@@ -13,6 +13,12 @@
 	return self;
 }
 
+- (Promise *)json {
+	Promise *promise = [[Promise alloc] init];
+
+	return promise;
+}
+
 - (Promise *)text {
 	Promise *promise = [[Promise alloc] init];
 

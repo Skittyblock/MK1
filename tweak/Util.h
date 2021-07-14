@@ -8,7 +8,6 @@ enum MK1LogType {
 
 void initContextIfNeeded();
 void setupHardActions();
-void setupLogger(BOOL alertOnError);
 
 JSValue *runScriptWithName(NSString *name);
 JSValue *evaluateCode(NSString *code);

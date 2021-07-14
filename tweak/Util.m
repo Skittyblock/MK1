@@ -2,6 +2,7 @@
 
 #import "Util.h"
 #import "Context.h"
+#import "MKContextManager.h"
 #import <dlfcn.h>
 #import <notify.h>
 #import <objc/runtime.h>
@@ -10,11 +11,13 @@
 // TODO: Separate contexts for different scripts
 void initContextIfNeeded() {
 	if (!ctx) {
-		ctx = [[JSContext alloc] initWithVirtualMachine:[[JSVirtualMachine alloc] init]];
-		[ctx evaluateScript:@"Error.prototype.isError = () => {return true}"];
-		setupLogger(YES);
-		setupContext(ctx);
-		setupHardActions();
+		// ctx = [[JSContext alloc] initWithVirtualMachine:[[JSVirtualMachine alloc] init]];
+		// [ctx evaluateScript:@"Error.prototype.isError = () => {return true}"];
+		MKContextManager *contextManager = [MKContextManager sharedManager];
+		[contextManager createNewContext];
+		ctx = contextManager.currentContext;
+		// setupContext(contextManager.currentContext);
+		// setupHardActions();
 	}
 }
 
@@ -40,23 +43,7 @@ void setupHardActions() {
 	}
 }
 
-// Setup MK1 logger
-void setupLogger(BOOL alertOnError) {
-	if (alertOnError) {
-		ctx.exceptionHandler = ^(JSContext *context, JSValue *exception) {
-			if ([exception isString] && [[exception toString] isEqualToString:@"MK1_EXIT"]) return;
-			alertError([exception toString]);
-			NSLog(@"[MK1](JSException) %@", [exception toString]);
-		};
-	} else {
-		ctx.exceptionHandler = ^(JSContext *context, JSValue *exception) {
-			if ([exception isString] && [[exception toString] isEqualToString:@"MK1_EXIT"]) return;
-			NSLog(@"[MK1](JSException) %@", [exception toString]);
-		};
-	}
-}
-
-// Run script with specified name
+// Run script with specified name in a new context
 JSValue *runScriptWithName(NSString *name) {
 	//dispatch_async(dispatch_get_main_queue(), ^{
 		NSString *path = [NSString stringWithFormat:@"/Library/MK1/Scripts/%@/index.js", name];
@@ -64,10 +51,16 @@ JSValue *runScriptWithName(NSString *name) {
 			alertError([NSString stringWithFormat:@"Script file at '%@' does not exist", path]);
 			return nil;
 		}
-		NSString *script = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil]; 
-		initContextIfNeeded();
+		NSString *script = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil];
 
+		// initContextIfNeeded();
+
+		MKContextManager *contextManager = [MKContextManager sharedManager];
+		[contextManager createNewContext];
+		ctx = contextManager.currentContext;
+		
 		ctx[@"SCRIPT_NAME"] = name;
+
 		return [ctx evaluateScript:script];
 	//});
 }
