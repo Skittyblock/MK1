@@ -7,12 +7,13 @@
 #import <objc/runtime.h>
 
 // Create global JSContext
+// TODO: Separate contexts for different scripts
 void initContextIfNeeded() {
 	if (!ctx) {
 		ctx = [[JSContext alloc] initWithVirtualMachine:[[JSVirtualMachine alloc] init]];
 		[ctx evaluateScript:@"Error.prototype.isError = () => {return true}"];
 		setupLogger(YES);
-		setupContext();
+		setupContext(ctx);
 		setupHardActions();
 	}
 }

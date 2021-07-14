@@ -1,10 +1,22 @@
 // Context.m
 
 #import "Context.h"
-#import "Tweak.h"
 #import "Util.h"
+
 #import <AVFoundation/AVFoundation.h>
 #import <rocketbootstrap/rocketbootstrap.h>
+#import <AVFoundation/AVFoundation+Private.h>
+#import <BluetoothManager/BluetoothManager.h>
+#import <Celestial/Celestial.h>
+#import <CoreDuet/CoreDuet.h>
+#import <Foundation/Foundation+Private.h>
+#import <FrontBoard/FrontBoard.h>
+#import <MediaTimer/MediaTimer.h>
+#import <SpringBoard/SpringBoard+Extra.h>
+#import <UIKit/UIKit+Private.h>
+#import <UserNotificationsKit/UserNotificationsKit.h>
+#import <VPNPreferences/VPNPreferences.h>
+
 #import "../Headers/AppSupport/AppSupport.h"
 #import "../Headers/Preferences/PSCellularDataSettingsDetail.h"
 #import <objc/runtime.h>
@@ -20,11 +32,34 @@
 
 // Setup JSContext functions
 // Main function implementations
-void setupContext() {
+// TODO: This is disgusting and needs to be cleaned up asap
+void setupContext(JSContext *ctx) {
 	NSMutableDictionary <NSString *, NSTimer *> *timeouts = [[NSMutableDictionary alloc] init];
 	NSMutableDictionary <NSString *, NSTimer *> *intervals = [[NSMutableDictionary alloc] init];
 	NSMutableDictionary *bluetoothDevices = [[NSMutableDictionary alloc] init];
 	NSMutableDictionary <NSString *, MTAlarm *> *alarms = [[NSMutableDictionary alloc] init];
+
+	__weak JSContext *weakCtx = ctx;
+
+	ctx[@"global"] = ctx.globalObject;
+
+	ctx[@"require"] = ^(NSString *moduleName) {
+		// Only supports local files for now
+    	if (![moduleName hasPrefix:@"./"] && ![moduleName hasPrefix:@"/"]) return [JSValue valueWithUndefinedInContext:weakCtx];
+    	if (![moduleName hasSuffix:@".js"]) moduleName = [moduleName stringByAppendingString:@".js"];
+
+		NSString *modulePath = moduleName;
+
+		if ([modulePath hasPrefix:@"./"]) {
+			NSString *scriptDirectory = [NSString stringWithFormat:@"/Library/MK1/Scripts/%@/", weakCtx[@"SCRIPT_NAME"]];
+			modulePath = [scriptDirectory stringByAppendingPathComponent:[modulePath substringFromIndex:2]];
+		}
+
+		NSString *moduleCode = [NSString stringWithContentsOfFile:modulePath encoding:NSUTF8StringEncoding error:nil];
+		NSString *injectedModuleCode = [NSString stringWithFormat:@"(function(){var module = {exports: {}};(function(module, exports) {%@;})(module, module.exports);return module.exports;})();", moduleCode];
+
+		return [weakCtx evaluateScript:injectedModuleCode];
+	};
 
 	// Alert
 	/* TODO: alerts should use a window placed above everything else instead of getting the key window
@@ -771,7 +806,7 @@ void setupContext() {
 						[promise fail:error.localizedDescription];
 					} else if (data) {
 						Response *res = [[Response alloc] initWithData:data];
-						[promise resolve:[JSValue valueWithObject:res inContext:ctx]];
+						[promise resolve:[JSValue valueWithObject:res inContext:weakCtx]];
 					} else {
 						[promise fail:[link stringByAppendingString:@" is empty"]];
 					}

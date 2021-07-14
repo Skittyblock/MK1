@@ -1,3 +1,5 @@
 // Context.h
 
-void setupContext();
+#import <JavaScriptCore/JavaScriptCore.h>
+
+void setupContext(JSContext *);
