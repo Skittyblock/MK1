@@ -3,6 +3,8 @@
 #import "MKMessagingCenter.h"
 #import "Tweak.h"
 #import "Util.h"
+#import "MKContextManager.h"
+#import <JavaScriptCore/JavaScriptCore.h>
 
 @implementation MKMessagingCenter
 
@@ -32,6 +34,8 @@
 		[_messagingCenter registerForMessageName:@"runtrigger" target:self selector:@selector(handleMessageNamed:withUserInfo:)];
 		[_messagingCenter registerForMessageName:@"runTrigger" target:self selector:@selector(handleMessageNamed:withUserInfo:)];
 		[_messagingCenter registerForMessageName:@"updateScripts" target:self selector:@selector(handleMessageNamed:withUserInfo:)];
+		
+		[_messagingCenter registerForMessageName:@"runCode" target:self selector:@selector(handleMessageNamed:withUserInfo:)];
 	}
 
 	return self;
@@ -48,6 +52,11 @@
 		activateTrigger(userInfo[@"name"]);
 	} else if ([name isEqualToString:@"updateScripts"]) {
 		updateScripts();
+	} else if ([name isEqualToString:@"runCode"]) {
+		JSValue *result = [[MKContextManager sharedManager] runCode:userInfo[@"code"]];
+		return @{
+			@"result": [result toString]
+		};
 	}
 	return @{};
 }
