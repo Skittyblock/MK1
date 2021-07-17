@@ -4,12 +4,13 @@
 #import "Context.h"
 #import "Util.h"
 
+#import "Process.h"
 #import "Console.h"
 #import "fs.h"
 #import "os.h"
-#import "XMLHttpRequest.h"
 #import "Promise.h"
 #import "Response.h"
+#import "XMLHttpRequest.h"
 
 @implementation MKContextManager
 
@@ -17,7 +18,17 @@
 	self = [super init];
 	if (self) {
 		self.vm = [[JSVirtualMachine alloc] init];
-		self.defaultModules = @[@"fs", @"os"];
+		self.coreModules = @[@"fs", @"os"];
+		// TODO: implement below modules
+		// NODE
+		//  - path
+		//  - console
+		//  - child_process
+		// MK1
+		//  - bridge 
+		//  - device
+		//  - settings
+		//      airplane mode, bluetooth, brightness, cellular, clipboard, flashlight, lpm, orientation lock, dark mode, volume, wifi
 	}
 	return self;
 }
@@ -37,8 +48,20 @@
 	[self setupGlobalFunctionsForContext:self.currentContext];
 }
 
-- (Class)classOfDefaultModule:(NSString *)moduleName {
-	if ([self.defaultModules indexOfObject:moduleName] != NSNotFound) {
+- (JSValue *)runCode:(NSString *)code {
+	if (!self.currentContext) [self createNewContext];
+	return [self.currentContext evaluateScript:code];
+}
+
+- (NSString *)wrapCode:(NSString *)code {
+	NSString *dirname = [NSString stringWithFormat:@"/Library/MK1/Scripts/%@/", self.currentContext[@"SCRIPT_NAME"]];
+	NSString *filename = [dirname stringByAppendingPathComponent:@"index.js"];
+	NSString *wrapper = [NSString stringWithFormat:@"(function(exports, module, __filename, __dirname) {%@;})", code];
+	return [NSString stringWithFormat:@"(function(){var module = {exports: {}, filename: '%@', id: '%@', path: '%@'};%@(module.exports, module, '%@', '%@');return module.exports;})();", filename, filename, dirname, wrapper, filename, dirname];
+}
+
+- (Class)classOfCoreModule:(NSString *)moduleName {
+	if ([self.coreModules indexOfObject:moduleName] != NSNotFound) {
 		if ([moduleName isEqualToString:@"fs"]) {
 			return [MKFSModule class];
 		} else if ([moduleName isEqualToString:@"os"]) {
@@ -49,7 +72,7 @@
 }
 
 - (void)setupExceptionHandlerForContext:(JSContext *)context {
-	ctx.exceptionHandler = ^(JSContext *context, JSValue *exception) {
+	context.exceptionHandler = ^(JSContext *context, JSValue *exception) {
 		if ([exception isString] && [[exception toString] isEqualToString:@"MK1_EXIT"]) return;
 		alertError([exception toString]);
 	};
@@ -61,32 +84,77 @@
 	// global object
 	ctx[@"global"] = ctx.globalObject;
 
-	// require(moduleName): CommonJS module support
-	ctx[@"require"] = ^(NSString *moduleName) {
-    	if (![moduleName hasPrefix:@"./"] && ![moduleName hasPrefix:@"/"]) {
-			if ([self.defaultModules indexOfObject:moduleName] != NSNotFound) return (JSValue *)[[[self classOfDefaultModule:moduleName] alloc] init];
-			else return [JSValue valueWithUndefinedInContext:weakCtx];
-		}
-    	if (![moduleName hasSuffix:@".js"]) moduleName = [moduleName stringByAppendingString:@".js"];
+	// console: https://developer.mozilla.org/en-US/docs/Web/API/Console
+	ctx.globalObject[@"console"] = [[Console alloc] init];
 
+	ctx.globalObject[@"process"] = [[Process alloc] init];
+
+	// require(moduleName): CommonJS module support
+	// TODO: support JSON files, move into local module variable
+	ctx[@"require"] = ^(NSString *moduleName) {
+		// Check cache first
+		JSValue *cachedModule = weakCtx[@"require"][@"cache"][moduleName];
+		if (cachedModule && ![cachedModule isUndefined] && ![cachedModule isNull]) {
+			return cachedModule;
+		}
+
+		// Load core module
+		if ([self.coreModules indexOfObject:moduleName] != NSNotFound) {
+			JSValue *coreModule = [[[self classOfCoreModule:moduleName] alloc] init];
+			weakCtx[@"require"][@"cache"][moduleName] = coreModule;
+			return coreModule;
+		}
+
+		NSString *dirname = [NSString stringWithFormat:@"/Library/MK1/Scripts/%@/", weakCtx[@"SCRIPT_NAME"]];
+
+		// TODO: stringByExpandingTildeInPath? should ~ be supported?
 		NSString *modulePath = moduleName;
 
-		if ([modulePath hasPrefix:@"./"]) {
-			NSString *scriptDirectory = [NSString stringWithFormat:@"/Library/MK1/Scripts/%@/", weakCtx[@"SCRIPT_NAME"]];
-			modulePath = [scriptDirectory stringByAppendingPathComponent:[modulePath substringFromIndex:2]];
+		NSFileManager *fileManager = [NSFileManager defaultManager];
+
+		// External module
+		if (![moduleName hasPrefix:@"./"] && ![moduleName hasPrefix:@"/"]) {
+			if ([fileManager fileExistsAtPath:[[dirname stringByAppendingPathComponent:@"modules"] stringByAppendingPathComponent:moduleName]]) {
+				modulePath = [[dirname stringByAppendingPathComponent:@"modules"] stringByAppendingPathComponent:moduleName];
+			}
+			else return [JSValue valueWithUndefinedInContext:weakCtx]; // TODO: throw "not found"
+		} else {
+			// Local file
+			// TODO: check ../
+			// TODO: check if file doesn't exist first, then try .js, .json
+			// if (![moduleName hasSuffix:@".js"]) modulePath = [modulePath stringByAppendingString:@".js"];
+
+			if ([modulePath hasPrefix:@"./"]) {
+				NSString *scriptDirectory = [NSString stringWithFormat:@"/Library/MK1/Scripts/%@/", weakCtx[@"SCRIPT_NAME"]];
+				modulePath = [scriptDirectory stringByAppendingPathComponent:[modulePath substringFromIndex:2]];
+			}
+		}
+
+		BOOL isDir;
+		BOOL fileExists = [fileManager fileExistsAtPath:modulePath isDirectory:&isDir];
+
+		if (![modulePath hasSuffix:@".js"] && !(fileExists && !isDir)) {
+			if ([fileManager fileExistsAtPath:[modulePath stringByAppendingPathComponent:@"index.js"]]) modulePath = [modulePath stringByAppendingPathComponent:@"index.js"];
+			else if ([fileManager fileExistsAtPath:[modulePath stringByAppendingString:@".js"]]) modulePath = [modulePath stringByAppendingString:@".js"];
+			else return [JSValue valueWithUndefinedInContext:weakCtx];
 		}
 
 		NSString *moduleCode = [NSString stringWithContentsOfFile:modulePath encoding:NSUTF8StringEncoding error:nil];
-		NSString *injectedModuleCode = [NSString stringWithFormat:@"(function(){var module = {exports: {}};(function(module, exports) {%@;})(module, module.exports);return module.exports;})();", moduleCode];
+		NSString *injectedModuleCode = [self wrapCode:moduleCode];
 
-		return [weakCtx evaluateScript:injectedModuleCode];
+		JSValue *ret = [weakCtx evaluateScript:injectedModuleCode];
+		weakCtx[@"require"][@"cache"][moduleName] = ret;
+		return ret;
 	};
 
+	ctx[@"require"][@"cache"] = @{};
+
 	// alert(message, title): substitute for window.alert
-	ctx[@"alert"] = ^(NSString *message, NSString *title) {
-		if (!title) title = [weakCtx[@"SCRIPT_NAME"] toString];
-		
-		UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
+	ctx.globalObject[@"alert"] = ^(NSString *message, JSValue *title) {
+		NSString *alertTitle = toStringCheckNull(title);
+		// if (!title || [title isNull] || [title isUndefined]) alertTitle = [NSString stringWithFormat:@"%@", weakCtx[@"SCRIPT_NAME"]];
+
+		UIAlertController *alert = [UIAlertController alertControllerWithTitle:alertTitle message:message preferredStyle:UIAlertControllerStyleAlert];
 
 		UIAlertAction *okAction = [UIAlertAction actionWithTitle:@"OK" style:UIAlertActionStyleDefault handler:^(UIAlertAction * action) {}];
 		[alert addAction:okAction];
@@ -96,7 +164,7 @@
 	};
 
 	// confirm(message, title, callback): calls callback function with the result of the selected choice
-	ctx[@"confirm"] = ^(NSString *message, NSString *title, JSValue *callback) {
+	ctx.globalObject[@"confirm"] = ^(NSString *message, NSString *title, JSValue *callback) {
 		UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
 
 		UIAlertAction* cancelAction = [UIAlertAction actionWithTitle:@"Cancel" style:UIAlertActionStyleCancel
@@ -117,7 +185,7 @@
 	};
 
 	// prompt(message, title, callback): calls callback function with inputted text or false if cancelled
-	ctx[@"prompt"] = ^(NSString *message, NSString *title, JSValue *callback) {
+	ctx.globalObject[@"prompt"] = ^(NSString *message, NSString *title, JSValue *callback) {
 		UIAlertController *alert = [UIAlertController alertControllerWithTitle:title message:message preferredStyle:UIAlertControllerStyleAlert];
 		[alert addTextFieldWithConfigurationHandler:nil];
 
@@ -138,20 +206,17 @@
 		[vc presentViewController:alert animated:YES completion:nil];
 	};
 
-	// console: https://developer.mozilla.org/en-US/docs/Web/API/Console
-	ctx[@"console"] = [[Console alloc] init];
-
 	// XMLHttpRequest: https://developer.mozilla.org/en-US/docs/Web/API/XMLHttpRequest
-	ctx[@"XMLHttpRequest"] = [XMLHttpRequest class];
+	ctx.globalObject[@"XMLHttpRequest"] = [XMLHttpRequest class];
 
 	// Promise: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Promise
-    ctx[@"Promise"] = (id) ^(JSValue *executor) { 
+	ctx.globalObject[@"Promise"] = (id) ^(JSValue *executor) { 
 		return [[Promise alloc] initWithExecutor:executor];
 	};
 
 	// fetch(url, options): https://developer.mozilla.org/en-US/docs/Web/API/Fetch_API
 	// Supports method, body, and headers for options. TODO: implement more
-	ctx[@"fetch"] = ^(NSString *link, NSDictionary * _Nullable options) {
+	ctx.globalObject[@"fetch"] = ^(NSString *link, NSDictionary * _Nullable options) {
 		Promise *promise = [[Promise alloc] init];
 
 		NSURL *url = [NSURL URLWithString:link];
@@ -191,7 +256,7 @@
 	};
 
 	// setTimeout(function, delay): https://developer.mozilla.org/en-US/docs/Web/API/WindowOrWorkerGlobalScope/setTimeout
-	ctx[@"setTimeout"] = ^(JSValue *function, double delay) {
+	ctx.globalObject[@"setTimeout"] = ^(JSValue *function, double delay) {
 		if (!delay) delay = 0;
 		NSString *timeoutID = [[NSUUID UUID] UUIDString];
 		NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:delay/1000 repeats:NO block:^(NSTimer *timer) {
@@ -203,7 +268,7 @@
 	};
 
 	// clearTimeout(timeoutID)
-	ctx[@"clearTimeout"] = ^(NSString *timeoutID) {
+	ctx.globalObject[@"clearTimeout"] = ^(NSString *timeoutID) {
 		if (self.timeouts[timeoutID]) {
 			[self.timeouts[timeoutID] invalidate];
 			self.timeouts[timeoutID] = nil;
@@ -211,7 +276,7 @@
 	};
 
 	// setInterval(function, delay)
-	ctx[@"setInterval"] = ^(JSValue *function, double delay) {
+	ctx.globalObject[@"setInterval"] = ^(JSValue *function, double delay) {
 		if (!delay) delay = 0;
 		NSString *intervalID = [[NSUUID UUID] UUIDString];
 		NSTimer *timer = [NSTimer scheduledTimerWithTimeInterval:delay/1000 repeats:YES block:^(NSTimer *timer) {
@@ -222,7 +287,7 @@
 	};
 
 	// clearInterval(intervalID)
-	ctx[@"clearInterval"] = ^(NSString *intervalID) {
+	ctx.globalObject[@"clearInterval"] = ^(NSString *intervalID) {
 		if (self.intervals[intervalID]) {
 			[self.intervals[intervalID] invalidate];
 			self.intervals[intervalID] = NULL;

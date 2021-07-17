@@ -45,24 +45,21 @@ void setupHardActions() {
 
 // Run script with specified name in a new context
 JSValue *runScriptWithName(NSString *name) {
-	//dispatch_async(dispatch_get_main_queue(), ^{
-		NSString *path = [NSString stringWithFormat:@"/Library/MK1/Scripts/%@/index.js", name];
-		if (![[NSFileManager defaultManager] fileExistsAtPath:path]) {
-			alertError([NSString stringWithFormat:@"Script file at '%@' does not exist", path]);
-			return nil;
-		}
-		NSString *script = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil];
+	NSString *path = [NSString stringWithFormat:@"/Library/MK1/Scripts/%@/index.js", name];
+	if (![[NSFileManager defaultManager] fileExistsAtPath:path]) {
+		alertError([NSString stringWithFormat:@"Script file at '%@' does not exist", path]);
+		return nil;
+	}
+	NSString *script = [NSString stringWithContentsOfFile:path encoding:NSUTF8StringEncoding error:nil];
 
-		// initContextIfNeeded();
+	MKContextManager *contextManager = [MKContextManager sharedManager];
+	[contextManager createNewContext];
+	ctx = contextManager.currentContext;
+	
+	// TODO: change how this works
+	ctx[@"SCRIPT_NAME"] = name;
 
-		MKContextManager *contextManager = [MKContextManager sharedManager];
-		[contextManager createNewContext];
-		ctx = contextManager.currentContext;
-		
-		ctx[@"SCRIPT_NAME"] = name;
-
-		return [ctx evaluateScript:script];
-	//});
+	return [ctx evaluateScript:[contextManager wrapCode:script]];
 }
 
 // Evaluate code in string
